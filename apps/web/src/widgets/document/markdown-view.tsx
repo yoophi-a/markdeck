@@ -1,11 +1,10 @@
-import Link from 'next/link';
-import type { Route } from 'next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { resolveAssetHref, isImageAsset } from '@/shared/lib/assets';
 import { resolveMarkdownLink } from '@/shared/lib/content-links';
 import { createSlugger, extractCodeText } from '@/shared/lib/markdown';
+import { AppAnchorLink, AppLink } from '@/shared/ui/app-link';
 import { CodeBlock } from '@/shared/ui/code-block';
 import { DesktopAssetLink } from '@/shared/ui/desktop-asset';
 import { MarkdownImage } from '@/shared/ui/markdown-image';
@@ -25,14 +24,14 @@ export function MarkdownView({ content, currentRelativePath }: MarkdownViewProps
       components={{
         a: ({ href = '', children }) => {
           if (href.startsWith('/docs/') || href.startsWith('/browse/')) {
-            return <Link href={href as Route}>{children}</Link>;
+            return <AppLink href={href}>{children}</AppLink>;
           }
 
           const isSpecialHref = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('#');
           const resolvedMarkdown = resolveMarkdownLink(currentRelativePath, href);
 
           if (!resolvedMarkdown || (resolvedMarkdown === href && isSpecialHref)) {
-            return <a href={href}>{children}</a>;
+            return <AppAnchorLink href={href}>{children}</AppAnchorLink>;
           }
 
           if (href.startsWith('http://') || href.startsWith('https://')) {
@@ -54,7 +53,7 @@ export function MarkdownView({ content, currentRelativePath }: MarkdownViewProps
             );
           }
 
-          return <Link href={resolvedMarkdown as Route}>{children}</Link>;
+          return <AppLink href={resolvedMarkdown}>{children}</AppLink>;
         },
         img: ({ src = '', alt = '' }) => {
           const assetHref = resolveAssetHref(currentRelativePath, src);

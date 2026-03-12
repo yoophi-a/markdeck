@@ -1,15 +1,14 @@
 'use client';
 
-import Link from 'next/link';
-import type { Route } from 'next';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 
 import { SearchForm } from '@/features/search/ui/search-form';
+import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
 import { searchDesktopDocuments } from '@/platform/desktop/renderer/desktop-content';
 import type { SearchResult } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { toDocHref } from '@/shared/lib/routes';
+import { AppLink } from '@/shared/ui/app-link';
 
 interface DesktopSearchPageProps {
   initialQuery: string;
@@ -17,9 +16,24 @@ interface DesktopSearchPageProps {
 }
 
 export function DesktopSearchPage({ initialQuery, initialResults }: DesktopSearchPageProps) {
-  const searchParams = useSearchParams();
-  const query = searchParams.get('q')?.trim() ?? initialQuery;
+  const [query, setQuery] = useState(initialQuery);
   const [results, setResults] = useState(initialResults);
+
+  useEffect(() => {
+    if (isDesktopRenderer()) {
+      const syncFromHash = () => {
+        const hash = window.location.hash.replace(/^#/, '') || '/';
+        const [, search = ''] = hash.split('?');
+        setQuery(new URLSearchParams(search).get('q')?.trim() ?? '');
+      };
+
+      syncFromHash();
+      window.addEventListener('hashchange', syncFromHash);
+      return () => window.removeEventListener('hashchange', syncFromHash);
+    }
+
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   useEffect(() => {
     if (!query) {
@@ -51,9 +65,9 @@ export function DesktopSearchPage({ initialQuery, initialResults }: DesktopSearc
               {results.map((result) => (
                 <li key={result.relativePath} className="search-result-item">
                   <div className="stack search-result-main">
-                    <Link href={toDocHref(result.relativePath) as Route} className="search-result-title">
+                    <AppLink href={toDocHref(result.relativePath)} className="search-result-title">
                       <HighlightedText text={result.title} query={query} />
-                    </Link>
+                    </AppLink>
                     <span className="muted mono">
                       <HighlightedText text={result.relativePath} query={query} />
                     </span>

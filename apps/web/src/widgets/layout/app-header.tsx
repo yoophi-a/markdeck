@@ -1,14 +1,13 @@
 'use client';
 
-import Link from 'next/link';
-import type { Route } from 'next';
 import { Suspense } from 'react';
 
 import { SearchForm } from '@/features/search/ui/search-form';
+import { ThemeToggle } from '@/features/theme/ui/theme-toggle';
 import { cn } from '@/shared/lib/utils';
+import { AppLink } from '@/shared/ui/app-link';
 import { buttonVariants } from '@/shared/ui/button';
 import { Separator } from '@/shared/ui/separator';
-import { ThemeToggle } from '@/features/theme/ui/theme-toggle';
 import { ContentRootSelector } from '@/widgets/layout/content-root-selector';
 
 const appTitle = process.env.MARKDECK_APP_TITLE ?? 'MarkDeck';
@@ -17,9 +16,9 @@ export function AppHeader() {
   return (
     <header className="topbar">
       <div>
-        <Link href={'/' as Route} className="brand">
+        <AppLink href="/" className="brand">
           {appTitle}
-        </Link>
+        </AppLink>
         <p className="subtitle">openclaw-workspace markdown browser</p>
       </div>
       <div className="topbar-actions">
@@ -29,12 +28,12 @@ export function AppHeader() {
         <ContentRootSelector />
         <Separator orientation="vertical" className="header-separator hidden h-8 md:block" />
         <nav className="nav">
-          <Link href={'/browse' as Route} className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'nav-link')}>
+          <AppLink href="/browse" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'nav-link')}>
             Browse
-          </Link>
-          <Link href={'/search' as Route} className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'nav-link')}>
+          </AppLink>
+          <AppLink href="/search" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'nav-link')}>
             Search
-          </Link>
+          </AppLink>
           <ThemeToggle />
         </nav>
       </div>

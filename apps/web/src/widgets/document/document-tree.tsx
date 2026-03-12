@@ -1,13 +1,12 @@
 'use client';
 
-import Link from 'next/link';
-import type { Route } from 'next';
 import { ChevronDown, ChevronRight, FileText, FolderTree, LoaderCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { buildDesktopDocumentTree, isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
 import type { DocumentTreeNode } from '@/shared/lib/content-types';
 import { toBrowseHref, toDocHref } from '@/shared/lib/routes';
+import { AppLink } from '@/shared/ui/app-link';
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { ScrollArea } from '@/shared/ui/scroll-area';
@@ -92,15 +91,7 @@ export function DocumentTree({ title = '파일과 폴더', nodes, activeRelative
           <ScrollArea className="max-h-[70vh] pr-3">
             <ul className="document-tree-list">
               {treeNodes.map((node) => (
-                <TreeNode
-                  key={`${node.type}:${node.relativePath}`}
-                  node={node}
-                  activeRelativePath={activeRelativePath}
-                  depth={0}
-                  expandedPaths={expandedPaths}
-                  loadingPaths={loadingPaths}
-                  onToggle={handleToggle}
-                />
+                <TreeNode key={`${node.type}:${node.relativePath}`} node={node} activeRelativePath={activeRelativePath} depth={0} expandedPaths={expandedPaths} loadingPaths={loadingPaths} onToggle={handleToggle} />
               ))}
             </ul>
           </ScrollArea>
@@ -148,38 +139,20 @@ function TreeNode({
             aria-label={isExpanded ? `${node.name} 폴더 접기` : `${node.name} 폴더 펼치기`}
             aria-expanded={isExpanded}
           >
-            {isLoading ? (
-              <LoaderCircle className="size-4 animate-spin" />
-            ) : hasChildren ? (
-              isExpanded ? (
-                <ChevronDown className="size-4" />
-              ) : (
-                <ChevronRight className="size-4" />
-              )
-            ) : (
-              <span className="document-tree-toggle-spacer" />
-            )}
+            {isLoading ? <LoaderCircle className="size-4 animate-spin" /> : hasChildren ? isExpanded ? <ChevronDown className="size-4" /> : <ChevronRight className="size-4" /> : <span className="document-tree-toggle-spacer" />}
           </Button>
         ) : (
           <span className="document-tree-toggle-placeholder" />
         )}
         <span className="document-tree-icon">{isDirectory ? <FolderTree className="size-4" /> : <FileText className="size-4" />}</span>
-        <Link href={href as Route} className={`document-tree-link${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined}>
+        <AppLink href={href} className={`document-tree-link${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined}>
           {node.name}
-        </Link>
+        </AppLink>
       </div>
       {isDirectory && node.children && node.children.length > 0 && isExpanded ? (
         <ul className="document-tree-list nested">
           {node.children.map((child) => (
-            <TreeNode
-              key={`${child.type}:${child.relativePath}`}
-              node={child}
-              activeRelativePath={activeRelativePath}
-              depth={depth + 1}
-              expandedPaths={expandedPaths}
-              loadingPaths={loadingPaths}
-              onToggle={onToggle}
-            />
+            <TreeNode key={`${child.type}:${child.relativePath}`} node={child} activeRelativePath={activeRelativePath} depth={depth + 1} expandedPaths={expandedPaths} loadingPaths={loadingPaths} onToggle={onToggle} />
           ))}
         </ul>
       ) : null}

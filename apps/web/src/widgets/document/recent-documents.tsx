@@ -1,12 +1,11 @@
 'use client';
 
-import Link from 'next/link';
-import type { Route } from 'next';
 import { Clock3 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { formatDateTime } from '@/shared/lib/format';
 import { toDocHref } from '@/shared/lib/routes';
+import { AppLink } from '@/shared/ui/app-link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 
@@ -72,9 +71,9 @@ export function RecentDocuments({ currentDocument, limit = DEFAULT_LIMIT, emptyM
               {visibleItems.map((item) => (
                 <li key={item.relativePath} className="search-result-item recent-document-item">
                   <div className="stack search-result-main">
-                    <Link href={toDocHref(item.relativePath) as Route} className="search-result-title">
+                    <AppLink href={toDocHref(item.relativePath)} className="search-result-title">
                       {item.title}
-                    </Link>
+                    </AppLink>
                     <span className="muted mono">{item.relativePath}</span>
                   </div>
                   <div className="browser-entry-meta muted mono">

@@ -1,7 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-import type { Route } from 'next';
 import { useEffect, useMemo, useState } from 'react';
 
 import { getDesktopDocumentPageData } from '@/platform/desktop/renderer/desktop-content';
@@ -10,6 +8,7 @@ import type { DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-ty
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/shared/lib/markdown';
 import { toBrowseHref } from '@/shared/lib/routes';
+import { AppLink } from '@/shared/ui/app-link';
 import { DocumentReaderLayout } from '@/widgets/document/document-reader-layout';
 import { DocumentTree } from '@/widgets/document/document-tree';
 import { MarkdownView } from '@/widgets/document/markdown-view';
@@ -20,17 +19,12 @@ import { Breadcrumbs } from '@/widgets/navigation/breadcrumbs';
 
 interface DesktopDocumentPageProps {
   slug: string[];
-  initialDocument: MarkdownDocument;
+  initialDocument?: MarkdownDocument | null;
   initialKnownDocuments: string[];
   initialSidebarTree: DocumentTreeNode[];
 }
 
-export function DesktopDocumentPage({
-  slug,
-  initialDocument,
-  initialKnownDocuments,
-  initialSidebarTree,
-}: DesktopDocumentPageProps) {
+export function DesktopDocumentPage({ slug, initialDocument = null, initialKnownDocuments, initialSidebarTree }: DesktopDocumentPageProps) {
   const desktopRenderer = useDesktopRenderer();
   const [document, setDocument] = useState<MarkdownDocument | null>(desktopRenderer ? null : initialDocument);
   const [knownDocuments, setKnownDocuments] = useState(initialKnownDocuments);
@@ -73,10 +67,7 @@ export function DesktopDocumentPage({
     );
   }
 
-  const content = useMemo(
-    () => preprocessWikiLinks(document.content, (rawTarget) => resolveWikiLinkHref(document.relativePath, rawTarget, knownDocuments)),
-    [document.content, document.relativePath, knownDocuments]
-  );
+  const content = useMemo(() => preprocessWikiLinks(document.content, (rawTarget) => resolveWikiLinkHref(document.relativePath, rawTarget, knownDocuments)), [document.content, document.relativePath, knownDocuments]);
   const headings = useMemo(() => extractHeadings(content), [content]);
   const stats = useMemo(() => summarizeDocument(content, headings.length), [content, headings.length]);
   const directorySegments = slug.slice(0, -1);
@@ -98,9 +89,9 @@ export function DesktopDocumentPage({
           <span>read: {stats.readingMinutes} min</span>
         </div>
         <div className="actions document-actions">
-          <Link href={toBrowseHref(directoryPath) as Route} className="button-link secondary">
+          <AppLink href={toBrowseHref(directoryPath)} className="button-link secondary">
             폴더로 돌아가기
-          </Link>
+          </AppLink>
         </div>
       </div>
 
@@ -111,21 +102,8 @@ export function DesktopDocumentPage({
             <article className="card markdown-body document-card">
               <MarkdownView content={content} currentRelativePath={document.relativePath} />
             </article>
-            <PinnedDocuments
-              currentDocument={{
-                relativePath: document.relativePath,
-                title: document.title,
-              }}
-              emptyMessage="자주 보는 문서를 pin 하면 여기에 고정됩니다."
-            />
-            <RecentDocuments
-              currentDocument={{
-                relativePath: document.relativePath,
-                title: document.title,
-                viewedAt: document.updatedAt,
-              }}
-              emptyMessage="이 문서를 보기 시작하면 최근 본 문서가 여기에 쌓입니다."
-            />
+            <PinnedDocuments currentDocument={{ relativePath: document.relativePath, title: document.title }} emptyMessage="자주 보는 문서를 pin 하면 여기에 고정됩니다." />
+            <RecentDocuments currentDocument={{ relativePath: document.relativePath, title: document.title, viewedAt: document.updatedAt }} emptyMessage="이 문서를 보기 시작하면 최근 본 문서가 여기에 쌓입니다." />
           </>
         }
         toc={<TableOfContents headings={headings} />}

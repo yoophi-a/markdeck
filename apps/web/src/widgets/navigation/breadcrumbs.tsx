@@ -1,7 +1,5 @@
-import Link from 'next/link';
-import type { Route } from 'next';
-
 import { toBrowseHref } from '@/shared/lib/routes';
+import { AppLink } from '@/shared/ui/app-link';
 
 interface BreadcrumbsProps {
   segments?: string[];
@@ -11,16 +9,16 @@ interface BreadcrumbsProps {
 export function Breadcrumbs({ segments = [], currentLabel }: BreadcrumbsProps) {
   return (
     <nav className="breadcrumbs" aria-label="Breadcrumb">
-      <Link href={'/' as Route}>Home</Link>
+      <AppLink href="/">Home</AppLink>
       <span className="breadcrumb-separator">/</span>
-      <Link href={'/browse' as Route}>browse</Link>
+      <AppLink href="/browse">browse</AppLink>
       {segments.map((segment, index) => {
         const partialPath = segments.slice(0, index + 1).join('/');
 
         return (
           <span key={partialPath} className="breadcrumb-item">
             <span className="breadcrumb-separator">/</span>
-            <Link href={toBrowseHref(partialPath) as Route}>{segment}</Link>
+            <AppLink href={toBrowseHref(partialPath)}>{segment}</AppLink>
           </span>
         );
       })}

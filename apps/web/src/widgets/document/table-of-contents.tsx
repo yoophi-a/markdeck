@@ -1,11 +1,10 @@
 'use client';
 
-import Link from 'next/link';
-import type { Route } from 'next';
 import { ListTree } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import type { HeadingItem } from '@/shared/lib/markdown';
+import { AppAnchorLink } from '@/shared/ui/app-link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
 import { ScrollArea } from '@/shared/ui/scroll-area';
 
@@ -21,9 +20,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
       return;
     }
 
-    const headingElements = headings
-      .map((heading) => document.getElementById(heading.id))
-      .filter((element): element is HTMLElement => Boolean(element));
+    const headingElements = headings.map((heading) => document.getElementById(heading.id)).filter((element): element is HTMLElement => Boolean(element));
 
     if (headingElements.length === 0) {
       return;
@@ -31,9 +28,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        const visibleEntries = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        const visibleEntries = entries.filter((entry) => entry.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
 
         if (visibleEntries.length > 0) {
           setActiveId(visibleEntries[0].target.id);
@@ -48,10 +43,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
     headingElements.forEach((element) => observer.observe(element));
 
     function handleScroll() {
-      const current = headingElements
-        .filter((element) => element.getBoundingClientRect().top <= 120)
-        .at(-1);
-
+      const current = headingElements.filter((element) => element.getBoundingClientRect().top <= 120).at(-1);
       if (current) {
         setActiveId(current.id);
       }
@@ -87,14 +79,9 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
                   const isActive = heading.id === activeId;
                   return (
                     <li key={heading.id} className={`toc-item depth-${heading.depth}`}>
-                      <Link
-                        href={`#${heading.id}` as Route}
-                        scroll
-                        className={`toc-link${isActive ? ' active' : ''}`}
-                        aria-current={isActive ? 'location' : undefined}
-                      >
+                      <AppAnchorLink href={`#${heading.id}`} className={`toc-link${isActive ? ' active' : ''}`} aria-current={isActive ? 'location' : undefined}>
                         {heading.text}
-                      </Link>
+                      </AppAnchorLink>
                     </li>
                   );
                 })}

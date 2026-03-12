@@ -52,11 +52,12 @@ web 환경은 기존 서버 경로를 유지한다.
 - web server fallback을 UI 내부에서 최소화
 
 ### Phase B — renderer bootstrap 분리
-다음 단계 후보.
+부분 적용.
 
-- desktop 전용 renderer entry를 분리한다.
-- Next App Router를 계속 쓰더라도 desktop shell 경계를 더 명확히 만든다.
-- 최소한 desktop이 기대하는 route/data bootstrap 계약을 문서화한다.
+- desktop 전용 renderer entry를 HashRouter 기반 client shell로 분리했다.
+- Electron은 `/#/` 진입점을 로드하고, desktop renderer의 browse / docs / search route state는 client-side hash route가 담당한다.
+- 문서 데이터는 기존처럼 Electron main IPC를 사용하고, embedded Next server는 bootstrap 및 web 호환성을 위해 유지한다.
+- Next App Router 기반 web route는 그대로 남겨 두어 web/desktop이 공존한다.
 
 ### Phase C — embedded server dependency 축소
 장기 단계.

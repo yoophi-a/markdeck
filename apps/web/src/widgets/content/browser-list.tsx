@@ -1,10 +1,9 @@
-import Link from 'next/link';
-import type { Route } from 'next';
 import { FileText, Folder, Minus } from 'lucide-react';
 
 import type { BrowserEntry } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { toBrowseHref, toDocHref } from '@/shared/lib/routes';
+import { AppLink } from '@/shared/ui/app-link';
 
 interface BrowserListProps {
   entries: BrowserEntry[];
@@ -21,9 +20,9 @@ export function BrowserList({ entries }: BrowserListProps) {
             <div className="browser-entry-main">
               <span className="entry-type">{iconForType(entry.type)}</span>
               {href ? (
-                <Link href={href as Route} className="browser-entry-link">
+                <AppLink href={href} className="browser-entry-link">
                   {entry.name}
-                </Link>
+                </AppLink>
               ) : (
                 <span className="muted">{entry.name}</span>
               )}

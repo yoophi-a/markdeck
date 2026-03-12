@@ -396,7 +396,7 @@ async function ensureWebApp() {
 
 async function loadApp() {
   const url = await ensureWebApp();
-  await mainWindow.loadURL(url);
+  await mainWindow.loadURL(`${url}/#/`);
 }
 
 async function restartWebApp() {
