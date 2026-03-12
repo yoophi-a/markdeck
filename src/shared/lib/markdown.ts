@@ -1,6 +1,6 @@
 import path from 'node:path';
 
-import { toDocHref } from '@/lib/routes';
+import { toDocHref } from '@/shared/lib/routes';
 
 export interface HeadingItem {
   depth: 1 | 2 | 3;

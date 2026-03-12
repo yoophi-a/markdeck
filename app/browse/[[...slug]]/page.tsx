@@ -1,9 +1,9 @@
 import { notFound } from 'next/navigation';
 
-import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { BrowserList } from '@/components/BrowserList';
-import { joinSegments, prettyPath } from '@/lib/format';
-import { listDirectory } from '@/lib/content';
+import { BrowserList } from '@/widgets/content/browser-list';
+import { Breadcrumbs } from '@/widgets/navigation/breadcrumbs';
+import { listDirectory } from '@/shared/lib/content';
+import { joinSegments, prettyPath } from '@/shared/lib/format';
 
 export default async function BrowsePage({ params }: { params: Promise<{ slug?: string[] }> }) {
   const resolvedParams = await params;

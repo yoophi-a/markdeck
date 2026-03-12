@@ -4,8 +4,8 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { useEffect, useMemo, useState } from 'react';
 
-import { formatDateTime } from '@/lib/format';
-import { toDocHref } from '@/lib/routes';
+import { formatDateTime } from '@/shared/lib/format';
+import { toDocHref } from '@/shared/lib/routes';
 
 interface RecentDocumentItem {
   relativePath: string;

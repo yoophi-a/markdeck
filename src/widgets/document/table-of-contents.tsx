@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 
-import type { HeadingItem } from '@/lib/markdown';
+import type { HeadingItem } from '@/shared/lib/markdown';
 
 interface TableOfContentsProps {
   headings: HeadingItem[];

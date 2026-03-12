@@ -3,12 +3,12 @@ import type { Route } from 'next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import { CodeBlock } from '@/components/CodeBlock';
-import { MarkdownImage } from '@/components/MarkdownImage';
-import { MermaidBlock } from '@/components/MermaidBlock';
-import { resolveAssetHref, isImageAsset } from '@/lib/assets';
-import { resolveMarkdownLink } from '@/lib/content';
-import { createSlugger, extractCodeText } from '@/lib/markdown';
+import { resolveAssetHref, isImageAsset } from '@/shared/lib/assets';
+import { resolveMarkdownLink } from '@/shared/lib/content';
+import { createSlugger, extractCodeText } from '@/shared/lib/markdown';
+import { CodeBlock } from '@/shared/ui/code-block';
+import { MarkdownImage } from '@/shared/ui/markdown-image';
+import { MermaidBlock } from '@/shared/ui/mermaid-block';
 
 interface MarkdownViewProps {
   content: string;

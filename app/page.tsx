@@ -1,9 +1,9 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 
-import { RecentDocuments } from '@/components/RecentDocuments';
-import { getContentRoot, getIgnorePatterns } from '@/lib/content';
-import { toBrowseHref } from '@/lib/routes';
+import { getContentRoot, getIgnorePatterns } from '@/shared/lib/content';
+import { toBrowseHref } from '@/shared/lib/routes';
+import { RecentDocuments } from '@/widgets/document/recent-documents';
 
 export default function HomePage() {
   return (

@@ -2,14 +2,14 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { notFound } from 'next/navigation';
 
-import { Breadcrumbs } from '@/components/Breadcrumbs';
-import { MarkdownView } from '@/components/MarkdownView';
-import { RecentDocuments } from '@/components/RecentDocuments';
-import { TableOfContents } from '@/components/TableOfContents';
-import { collectMarkdownRelativePaths, readMarkdownDocument } from '@/lib/content';
-import { toBrowseHref } from '@/lib/routes';
-import { formatDateTime, formatFileSize, joinSegments } from '@/lib/format';
-import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/lib/markdown';
+import { collectMarkdownRelativePaths, readMarkdownDocument } from '@/shared/lib/content';
+import { formatDateTime, formatFileSize, joinSegments } from '@/shared/lib/format';
+import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/shared/lib/markdown';
+import { toBrowseHref } from '@/shared/lib/routes';
+import { MarkdownView } from '@/widgets/document/markdown-view';
+import { RecentDocuments } from '@/widgets/document/recent-documents';
+import { TableOfContents } from '@/widgets/document/table-of-contents';
+import { Breadcrumbs } from '@/widgets/navigation/breadcrumbs';
 
 export default async function DocumentPage({ params }: { params: Promise<{ slug: string[] }> }) {
   const resolvedParams = await params;

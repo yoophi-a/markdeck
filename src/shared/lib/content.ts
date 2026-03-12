@@ -1,7 +1,9 @@
+import 'server-only';
+
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { toBrowseHref, toDocHref } from '@/lib/routes';
+import { toBrowseHref, toDocHref } from '@/shared/lib/routes';
 
 export type EntryType = 'directory' | 'markdown' | 'file';
 
