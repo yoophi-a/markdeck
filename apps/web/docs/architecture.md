@@ -174,9 +174,22 @@ MVP에서는 파일 시스템 직접 조회로 충분하다.
 - 공개 운영 전에는 반드시 인증 계층을 추가하는 것을 권장
 - 실사용 시 markdown 외 이미지/첨부 링크 처리 정책을 정해야 한다
 
-## 13. 다음 작업 제안
+## 13. Desktop bootstrap 메모
+
+현재 desktop은 Electron이 Next renderer를 감싸는 구조를 유지한다.
+
+- UI bootstrap: embedded Next server
+- content data plane: Electron main IPC로 점진 이관
+- 현재 desktop IPC 우선 범위: search / browse / docs / asset
+
+즉, desktop은 이미 데이터 경계는 main 쪽으로 이동 중이지만, renderer 시작 자체는 아직 web runtime에 기대고 있다.
+
+세부 내용과 다음 단계는 `desktop-bootstrap.md`를 참고한다.
+
+## 14. 다음 작업 제안
 
 1. `npm install`
 2. `npm run dev`
 3. 실제 workspace markdown로 브라우징 테스트
 4. 필요 시 검색/인증 우선순위 확정
+5. desktop bootstrap 분리 단계 설계
