@@ -1,7 +1,11 @@
 'use client';
 
+import { Search } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+
+import { Button } from '@/shared/ui/button';
+import { Input } from '@/shared/ui/input';
 
 export function SearchForm() {
   const router = useRouter();
@@ -16,7 +20,7 @@ export function SearchForm() {
 
   return (
     <form className="search-form" onSubmit={handleSubmit}>
-      <input
+      <Input
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
@@ -24,9 +28,10 @@ export function SearchForm() {
         className="search-input"
         aria-label="Search markdown documents"
       />
-      <button type="submit" className="search-button">
-        Search
-      </button>
+      <Button type="submit" variant="outline" className="search-button">
+        <Search className="size-4" />
+        <span>Search</span>
+      </Button>
     </form>
   );
 }

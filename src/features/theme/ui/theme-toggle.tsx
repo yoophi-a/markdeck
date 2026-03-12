@@ -1,6 +1,9 @@
 'use client';
 
+import { MoonStar, SunMedium } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+import { Button } from '@/shared/ui/button';
 
 const STORAGE_KEY = 'markdeck-theme';
 
@@ -27,8 +30,22 @@ export function ThemeToggle() {
   }
 
   return (
-    <button type="button" className="theme-toggle" onClick={handleToggle} aria-label="Toggle color theme">
-      {mounted ? (theme === 'dark' ? '☀️ Light' : '🌙 Dark') : 'Theme'}
-    </button>
+    <Button type="button" variant="outline" className="theme-toggle" onClick={handleToggle} aria-label="Toggle color theme">
+      {mounted ? (
+        theme === 'dark' ? (
+          <>
+            <SunMedium className="size-4" />
+            <span>Light</span>
+          </>
+        ) : (
+          <>
+            <MoonStar className="size-4" />
+            <span>Dark</span>
+          </>
+        )
+      ) : (
+        'Theme'
+      )}
+    </Button>
   );
 }

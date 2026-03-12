@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type { Route } from 'next';
+import { FileText, Folder, Minus } from 'lucide-react';
 
 import type { BrowserEntry } from '@/shared/lib/content';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
@@ -20,7 +21,9 @@ export function BrowserList({ entries }: BrowserListProps) {
             <div className="browser-entry-main">
               <span className="entry-type">{iconForType(entry.type)}</span>
               {href ? (
-                <Link href={href as Route}>{entry.name}</Link>
+                <Link href={href as Route} className="browser-entry-link">
+                  {entry.name}
+                </Link>
               ) : (
                 <span className="muted">{entry.name}</span>
               )}
@@ -39,10 +42,10 @@ export function BrowserList({ entries }: BrowserListProps) {
 function iconForType(type: BrowserEntry['type']) {
   switch (type) {
     case 'directory':
-      return '📁';
+      return <Folder className="size-4" />;
     case 'markdown':
-      return '📝';
+      return <FileText className="size-4" />;
     default:
-      return '—';
+      return <Minus className="size-4" />;
   }
 }

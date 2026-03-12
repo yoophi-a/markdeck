@@ -2,10 +2,13 @@
 
 import Link from 'next/link';
 import type { Route } from 'next';
+import { Clock3 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { formatDateTime } from '@/shared/lib/format';
 import { toDocHref } from '@/shared/lib/routes';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
+import { ScrollArea } from '@/shared/ui/scroll-area';
 
 interface RecentDocumentItem {
   relativePath: string;
@@ -54,33 +57,38 @@ export function RecentDocuments({ currentDocument, limit = DEFAULT_LIMIT, emptyM
   }, [currentDocument, items, limit]);
 
   return (
-    <section className="card stack">
-      <div>
-        <p className="eyebrow">Recent</p>
-        <h2>최근 본 문서</h2>
-        <p className="muted">이 브라우저에서 최근에 읽은 문서를 다시 빠르게 열 수 있어요.</p>
-      </div>
-
-      {visibleItems.length > 0 ? (
-        <ul className="search-results recent-documents-list">
-          {visibleItems.map((item) => (
-            <li key={item.relativePath} className="search-result-item recent-document-item">
-              <div className="stack search-result-main">
-                <Link href={toDocHref(item.relativePath) as Route} className="search-result-title">
-                  {item.title}
-                </Link>
-                <span className="muted mono">{item.relativePath}</span>
-              </div>
-              <div className="browser-entry-meta muted mono">
-                <span>viewed {formatDateTime(item.viewedAt)}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="muted">{emptyMessage}</p>
-      )}
-    </section>
+    <Card className="recent-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Clock3 className="size-4" />
+          최근 본 문서
+        </CardTitle>
+        <CardDescription>이 브라우저에서 최근에 읽은 문서를 다시 빠르게 열 수 있어요.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {visibleItems.length > 0 ? (
+          <ScrollArea className="max-h-80 pr-3">
+            <ul className="search-results recent-documents-list">
+              {visibleItems.map((item) => (
+                <li key={item.relativePath} className="search-result-item recent-document-item">
+                  <div className="stack search-result-main">
+                    <Link href={toDocHref(item.relativePath) as Route} className="search-result-title">
+                      {item.title}
+                    </Link>
+                    <span className="muted mono">{item.relativePath}</span>
+                  </div>
+                  <div className="browser-entry-meta muted mono">
+                    <span>viewed {formatDateTime(item.viewedAt)}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </ScrollArea>
+        ) : (
+          <p className="muted">{emptyMessage}</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
