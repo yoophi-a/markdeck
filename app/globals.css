@@ -533,11 +533,22 @@ code {
 }
 
 .toc-link {
+  display: inline-flex;
+  width: 100%;
+  padding: 4px 8px;
+  border-radius: 10px;
   color: var(--muted);
 }
 
 .toc-link:hover {
   color: var(--text);
+  background: var(--list-bg);
+}
+
+.toc-link.active {
+  color: var(--text);
+  background: var(--list-bg);
+  font-weight: 700;
 }
 
 .recent-documents-list {
@@ -605,6 +616,9 @@ code {
 .document-tree-link.active {
   color: var(--text);
   font-weight: 700;
+  background: var(--list-bg);
+  padding: 4px 8px;
+  border-radius: 10px;
 }
 
 @media (max-width: 1180px) {

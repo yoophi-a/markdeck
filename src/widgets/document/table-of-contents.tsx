@@ -1,6 +1,9 @@
+'use client';
+
 import Link from 'next/link';
 import type { Route } from 'next';
 import { ListTree } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import type { HeadingItem } from '@/shared/lib/markdown';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
@@ -11,6 +14,58 @@ interface TableOfContentsProps {
 }
 
 export function TableOfContents({ headings }: TableOfContentsProps) {
+  const [activeId, setActiveId] = useState<string | null>(headings[0]?.id ?? null);
+
+  useEffect(() => {
+    if (headings.length === 0) {
+      return;
+    }
+
+    const headingElements = headings
+      .map((heading) => document.getElementById(heading.id))
+      .filter((element): element is HTMLElement => Boolean(element));
+
+    if (headingElements.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visibleEntries = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+
+        if (visibleEntries.length > 0) {
+          setActiveId(visibleEntries[0].target.id);
+        }
+      },
+      {
+        rootMargin: '0px 0px -70% 0px',
+        threshold: [0, 1],
+      }
+    );
+
+    headingElements.forEach((element) => observer.observe(element));
+
+    function handleScroll() {
+      const current = headingElements
+        .filter((element) => element.getBoundingClientRect().top <= 120)
+        .at(-1);
+
+      if (current) {
+        setActiveId(current.id);
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [headings]);
+
   if (headings.length === 0) {
     return null;
   }
@@ -28,13 +83,21 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
           <ScrollArea className="max-h-[60vh] pr-3">
             <nav aria-label="Table of contents">
               <ol className="toc-list">
-                {headings.map((heading) => (
-                  <li key={heading.id} className={`toc-item depth-${heading.depth}`}>
-                    <Link href={`#${heading.id}` as Route} scroll className="toc-link">
-                      {heading.text}
-                    </Link>
-                  </li>
-                ))}
+                {headings.map((heading) => {
+                  const isActive = heading.id === activeId;
+                  return (
+                    <li key={heading.id} className={`toc-item depth-${heading.depth}`}>
+                      <Link
+                        href={`#${heading.id}` as Route}
+                        scroll
+                        className={`toc-link${isActive ? ' active' : ''}`}
+                        aria-current={isActive ? 'location' : undefined}
+                      >
+                        {heading.text}
+                      </Link>
+                    </li>
+                  );
+                })}
               </ol>
             </nav>
           </ScrollArea>

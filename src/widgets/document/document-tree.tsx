@@ -103,7 +103,7 @@ function TreeNode({
           <span className="document-tree-toggle-placeholder" />
         )}
         <span className="document-tree-icon">{isDirectory ? <FolderTree className="size-4" /> : <FileText className="size-4" />}</span>
-        <Link href={href as Route} className={`document-tree-link${isActive ? ' active' : ''}`}>
+        <Link href={href as Route} className={`document-tree-link${isActive ? ' active' : ''}`} aria-current={isActive ? 'page' : undefined}>
           {node.name}
         </Link>
       </div>
