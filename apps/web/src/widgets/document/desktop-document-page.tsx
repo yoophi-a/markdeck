@@ -5,6 +5,7 @@ import type { Route } from 'next';
 import { useEffect, useMemo, useState } from 'react';
 
 import { buildDesktopDocumentTree, collectDesktopMarkdownRelativePaths, readDesktopMarkdownDocument } from '@/platform/desktop/renderer/desktop-api';
+import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 import type { DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/shared/lib/markdown';
@@ -30,11 +31,21 @@ export function DesktopDocumentPage({
   initialKnownDocuments,
   initialSidebarTree,
 }: DesktopDocumentPageProps) {
-  const [document, setDocument] = useState(initialDocument);
+  const desktopRenderer = useDesktopRenderer();
+  const [document, setDocument] = useState<MarkdownDocument | null>(desktopRenderer ? null : initialDocument);
   const [knownDocuments, setKnownDocuments] = useState(initialKnownDocuments);
   const [sidebarTree, setSidebarTree] = useState(initialSidebarTree);
 
   useEffect(() => {
+    if (!desktopRenderer) {
+      setDocument(initialDocument);
+      setKnownDocuments(initialKnownDocuments);
+      setSidebarTree(initialSidebarTree);
+      return;
+    }
+
+    setDocument(null);
+
     const relativePath = slug.join('/');
     const directoryPath = slug.slice(0, -1).join('/');
 
@@ -44,14 +55,28 @@ export function DesktopDocumentPage({
       buildDesktopDocumentTree(directoryPath, 1),
     ])
       .then(([nextDocument, nextKnownDocuments, nextSidebarTree]) => {
-        if (nextDocument) {
-          setDocument(nextDocument);
-        }
+        setDocument(nextDocument);
         setKnownDocuments(nextKnownDocuments);
         setSidebarTree(nextSidebarTree);
       })
-      .catch(() => undefined);
-  }, [slug]);
+      .catch(() => {
+        setDocument(initialDocument);
+        setKnownDocuments(initialKnownDocuments);
+        setSidebarTree(initialSidebarTree);
+      });
+  }, [desktopRenderer, initialDocument, initialKnownDocuments, initialSidebarTree, slug]);
+
+  if (!document) {
+    return (
+      <section className="stack document-page">
+        <div className="card document-header-card">
+          <p className="eyebrow">Document</p>
+          <h1>문서 불러오는 중…</h1>
+          <Breadcrumbs segments={slug.slice(0, -1)} currentLabel={slug.at(-1)} />
+        </div>
+      </section>
+    );
+  }
 
   const content = useMemo(
     () => preprocessWikiLinks(document.content, (rawTarget) => resolveWikiLinkHref(document.relativePath, rawTarget, knownDocuments)),
