@@ -381,6 +381,19 @@ code {
   color: var(--muted);
 }
 
+.markdown-image-wrap {
+  display: block;
+  margin: 18px 0;
+}
+
+.markdown-image {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+
 @media (max-width: 768px) {
   .shell {
     padding: 16px;

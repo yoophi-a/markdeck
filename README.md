@@ -33,6 +33,7 @@ MarkDeck은 이런 markdown 자산을 **파일 브라우징 + 문서 렌더링 +
 - markdown rendering
 - mermaid code block rendering
 - full-text search by file path / title / body
+- local relative image rendering and attachment links
 - relative markdown link navigation
 - hidden file filtering
 - configurable ignore patterns
@@ -65,6 +66,8 @@ MarkDeck은 일반적인 markdown 상대 링크를 기준으로 동작합니다.
 - `./README.md` → 현재 폴더 기준 다른 문서로 이동
 - `../docs/guide.md` → 상위 폴더 기준 문서로 이동
 - `./some-folder` → 해당 폴더 브라우저로 이동
+- `./images/diagram.png` → 현재 문서 기준 로컬 이미지로 렌더링
+- `./files/spec.pdf` → 현재 문서 기준 첨부 링크로 열기
 - `https://example.com` → 외부 링크로 유지
 - `#section` → 현재 문서 내부 anchor 유지
 - ```` ```mermaid ```` 코드블록 → 브라우저에서 다이어그램으로 렌더링

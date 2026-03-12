@@ -4,7 +4,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { CodeBlock } from '@/components/CodeBlock';
+import { MarkdownImage } from '@/components/MarkdownImage';
 import { MermaidBlock } from '@/components/MermaidBlock';
+import { resolveAssetHref, isImageAsset } from '@/lib/assets';
 import { resolveMarkdownLink } from '@/lib/content';
 import { extractCodeText } from '@/lib/markdown';
 
@@ -19,9 +21,9 @@ export function MarkdownView({ content, currentRelativePath }: MarkdownViewProps
       remarkPlugins={[remarkGfm]}
       components={{
         a: ({ href = '', children }) => {
-          const resolved = resolveMarkdownLink(currentRelativePath, href);
+          const resolvedMarkdown = resolveMarkdownLink(currentRelativePath, href);
 
-          if (!resolved || resolved === href && (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('#'))) {
+          if (!resolvedMarkdown || resolvedMarkdown === href && (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('#'))) {
             return <a href={href}>{children}</a>;
           }
 
@@ -33,7 +35,33 @@ export function MarkdownView({ content, currentRelativePath }: MarkdownViewProps
             );
           }
 
-          return <Link href={resolved as Route}>{children}</Link>;
+          if (!href.endsWith('.md')) {
+            const assetHref = resolveAssetHref(currentRelativePath, href);
+            return (
+              <a href={assetHref} target="_blank" rel="noreferrer">
+                {children}
+              </a>
+            );
+          }
+
+          return <Link href={resolvedMarkdown as Route}>{children}</Link>;
+        },
+        img: ({ src = '', alt = '' }) => {
+          const assetHref = resolveAssetHref(currentRelativePath, src);
+
+          if (!assetHref || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) {
+            return <img src={src} alt={alt} className="markdown-image" />;
+          }
+
+          if (!isImageAsset(src)) {
+            return (
+              <a href={assetHref} target="_blank" rel="noreferrer">
+                {alt || src}
+              </a>
+            );
+          }
+
+          return <MarkdownImage src={assetHref} alt={alt} />;
         },
         code: ({ className, children, ...props }) => {
           const language = className?.replace('language-', '').trim();
