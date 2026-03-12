@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 
-import { getContentRoot, toBrowseHref } from '@/lib/content';
+import { getContentRoot, getIgnorePatterns, toBrowseHref } from '@/lib/content';
 
 export default function HomePage() {
   return (
@@ -20,14 +20,23 @@ export default function HomePage() {
           <ul>
             <li>파일/폴더 브라우징</li>
             <li>Markdown 렌더링</li>
-            <li>상대 경로 링크 이동</li>
+            <li>문서 간 상대 링크 이동</li>
+            <li>ignore pattern 기반 숨김 처리</li>
+            <li>dark / light theme 전환</li>
             <li>content root 경로 제한</li>
           </ul>
         </article>
 
         <article className="card">
-          <h2>현재 content root</h2>
+          <h2>현재 설정</h2>
+          <p>
+            <strong>content root</strong>
+          </p>
           <code>{getContentRoot()}</code>
+          <p>
+            <strong>ignore patterns</strong>
+          </p>
+          <code>{getIgnorePatterns().join(', ')}</code>
           <div className="actions">
             <Link href={toBrowseHref() as Route} className="button-link">
               문서 둘러보기

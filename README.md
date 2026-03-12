@@ -31,8 +31,11 @@ MarkDeck은 이런 markdown 자산을 **파일 브라우징 + 문서 렌더링 +
 
 - directory browsing
 - markdown rendering
+- mermaid code block rendering
 - relative markdown link navigation
 - hidden file filtering
+- configurable ignore patterns
+- dark / light theme toggle
 - safe content-root restriction
 - custom content root via environment variable
 
@@ -52,6 +55,8 @@ MarkDeck은 이런 markdown 자산을 **파일 브라우징 + 문서 렌더링 +
 
 MarkDeck은 일반적인 markdown 상대 링크를 기준으로 동작합니다.
 
+그리고 브라우징 목록에서는 ignore pattern에 매칭되는 항목(예: `.git`, `node_modules`)을 숨길 수 있습니다.
+
 예시:
 
 - `./README.md` → 현재 폴더 기준 다른 문서로 이동
@@ -59,6 +64,7 @@ MarkDeck은 일반적인 markdown 상대 링크를 기준으로 동작합니다.
 - `./some-folder` → 해당 폴더 브라우저로 이동
 - `https://example.com` → 외부 링크로 유지
 - `#section` → 현재 문서 내부 anchor 유지
+- ```` ```mermaid ```` 코드블록 → 브라우저에서 다이어그램으로 렌더링
 
 ## Tech stack
 
@@ -104,6 +110,7 @@ Edit `.env.local`:
 ```bash
 MARKDECK_CONTENT_ROOT=/Users/yoophi/openclaw-workspace
 MARKDECK_APP_TITLE=MarkDeck
+MARKDECK_IGNORE_PATTERNS=.git,node_modules
 ```
 
 ### 2) Install dependencies
@@ -136,6 +143,7 @@ npm start
 | --- | --- | --- |
 | `MARKDECK_CONTENT_ROOT` | Yes | Markdown files will be exposed only under this directory |
 | `MARKDECK_APP_TITLE` | No | App title shown in the UI |
+| `MARKDECK_IGNORE_PATTERNS` | No | Comma-separated names/patterns to hide from browsing, e.g. `.git,node_modules,*.log` |
 
 ## Security notes
 

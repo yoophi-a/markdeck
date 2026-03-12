@@ -3,7 +3,9 @@ import type { Route } from 'next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { MermaidBlock } from '@/components/MermaidBlock';
 import { resolveMarkdownLink } from '@/lib/content';
+import { extractCodeText } from '@/lib/markdown';
 
 interface MarkdownViewProps {
   content: string;
@@ -31,6 +33,15 @@ export function MarkdownView({ content, currentRelativePath }: MarkdownViewProps
           }
 
           return <Link href={resolved as Route}>{children}</Link>;
+        },
+        code: ({ className, children }) => {
+          const language = className?.replace('language-', '').trim();
+
+          if (language === 'mermaid') {
+            return <MermaidBlock chart={extractCodeText(children).trim()} />;
+          }
+
+          return <code className={className}>{children}</code>;
         },
       }}
     >

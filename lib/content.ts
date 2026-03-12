@@ -18,6 +18,17 @@ export interface MarkdownDocument {
 
 const DEFAULT_ROOT = path.resolve(process.cwd(), '..', '..');
 const CONTENT_ROOT = path.resolve(process.env.MARKDECK_CONTENT_ROOT ?? DEFAULT_ROOT);
+const DEFAULT_IGNORE_PATTERNS = ['.git', 'node_modules'];
+const IGNORE_PATTERNS = parseIgnorePatterns(process.env.MARKDECK_IGNORE_PATTERNS);
+
+function parseIgnorePatterns(rawValue?: string) {
+  const customPatterns = rawValue
+    ?.split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  return customPatterns && customPatterns.length > 0 ? customPatterns : DEFAULT_IGNORE_PATTERNS;
+}
 
 function normalizeSegments(segments: string[] = []): string[] {
   return segments.filter(Boolean);
@@ -34,8 +45,28 @@ function assertSafePath(relativePath: string) {
   return resolvedPath;
 }
 
+function shouldIgnoreEntry(entryName: string) {
+  return entryName.startsWith('.') || IGNORE_PATTERNS.some((pattern) => matchesPattern(entryName, pattern));
+}
+
+function matchesPattern(entryName: string, pattern: string) {
+  if (pattern === entryName) {
+    return true;
+  }
+
+  if (pattern.startsWith('*.')) {
+    return entryName.toLowerCase().endsWith(pattern.slice(1).toLowerCase());
+  }
+
+  return false;
+}
+
 export function getContentRoot() {
   return CONTENT_ROOT;
+}
+
+export function getIgnorePatterns() {
+  return IGNORE_PATTERNS;
 }
 
 export async function listDirectory(segments: string[] = []): Promise<BrowserEntry[]> {
@@ -44,7 +75,7 @@ export async function listDirectory(segments: string[] = []): Promise<BrowserEnt
   const dirents = await fs.readdir(absolutePath, { withFileTypes: true });
 
   return dirents
-    .filter((entry) => !entry.name.startsWith('.'))
+    .filter((entry) => !shouldIgnoreEntry(entry.name))
     .map<BrowserEntry>((entry) => {
       const entryRelativePath = normalizeSegments([...segments, entry.name]).join('/');
 
