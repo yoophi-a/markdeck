@@ -233,6 +233,55 @@ async function collectMarkdownRelativePaths() {
     .sort((a, b) => a.localeCompare(b));
 }
 
+async function searchMarkdownDocuments(query) {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  const contentRoot = getContentRoot();
+  const markdownFiles = await collectMarkdownFiles(contentRoot);
+  const results = await Promise.all(
+    markdownFiles.map(async (filePath) => {
+      const relativePath = path.relative(contentRoot, filePath).split(path.sep).join('/');
+      const [content, stats] = await Promise.all([fsp.readFile(filePath, 'utf8'), fsp.stat(filePath)]);
+      const title = extractTitle(relativePath, content);
+      const haystack = `${relativePath}\n${title}\n${content}`.toLowerCase();
+
+      if (!haystack.includes(normalizedQuery)) {
+        return null;
+      }
+
+      return {
+        relativePath,
+        title,
+        snippet: buildSnippet(content, normalizedQuery),
+        size: stats.size,
+        updatedAt: stats.mtime.toISOString(),
+      };
+    })
+  );
+
+  return results.filter(Boolean).sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+}
+
+function buildSnippet(content, normalizedQuery) {
+  const compact = content.replace(/\s+/g, ' ').trim();
+  const index = compact.toLowerCase().indexOf(normalizedQuery);
+
+  if (index === -1) {
+    return compact.slice(0, 180);
+  }
+
+  const start = Math.max(0, index - 60);
+  const end = Math.min(compact.length, index + normalizedQuery.length + 120);
+  const prefix = start > 0 ? '…' : '';
+  const suffix = end < compact.length ? '…' : '';
+
+  return `${prefix}${compact.slice(start, end)}${suffix}`;
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -355,6 +404,7 @@ ipcMain.handle('markdeck:list-directory', (_event, relativePath = '') => listDir
 ipcMain.handle('markdeck:build-document-tree', (_event, relativePath = '', depth = 2) => buildDocumentTree(relativePath, depth));
 ipcMain.handle('markdeck:read-markdown-document', (_event, relativePath) => readMarkdownDocument(relativePath));
 ipcMain.handle('markdeck:collect-markdown-relative-paths', () => collectMarkdownRelativePaths());
+ipcMain.handle('markdeck:search-markdown-documents', (_event, query) => searchMarkdownDocuments(query));
 
 app.whenReady().then(async () => {
   createWindow();

@@ -1,4 +1,4 @@
-import type { BrowserEntry, DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-types';
+import type { BrowserEntry, DocumentTreeNode, MarkdownDocument, SearchResult } from '@/shared/lib/content-types';
 
 function getDesktopApi() {
   return window.markdeckDesktop;
@@ -30,4 +30,8 @@ export function readDesktopMarkdownDocument(relativePath: string): Promise<Markd
 
 export function collectDesktopMarkdownRelativePaths(): Promise<string[]> {
   return getDesktopApi()?.collectMarkdownRelativePaths() ?? Promise.resolve([]);
+}
+
+export function searchDesktopMarkdownDocuments(query: string): Promise<SearchResult[]> {
+  return getDesktopApi()?.searchMarkdownDocuments(query) ?? Promise.resolve([]);
 }

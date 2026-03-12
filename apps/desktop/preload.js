@@ -7,4 +7,5 @@ contextBridge.exposeInMainWorld('markdeckDesktop', {
   buildDocumentTree: (relativePath = '', depth = 2) => ipcRenderer.invoke('markdeck:build-document-tree', relativePath, depth),
   readMarkdownDocument: (relativePath) => ipcRenderer.invoke('markdeck:read-markdown-document', relativePath),
   collectMarkdownRelativePaths: () => ipcRenderer.invoke('markdeck:collect-markdown-relative-paths'),
+  searchMarkdownDocuments: (query) => ipcRenderer.invoke('markdeck:search-markdown-documents', query),
 });

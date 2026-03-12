@@ -1,85 +1,10 @@
-import Link from 'next/link';
-import type { Route } from 'next';
-
-import { SearchForm } from '@/features/search/ui/search-form';
 import { searchMarkdownDocuments } from '@/shared/lib/content';
-import { formatDateTime, formatFileSize } from '@/shared/lib/format';
-import { toDocHref } from '@/shared/lib/routes';
+import { DesktopSearchPage } from '@/widgets/search/desktop-search-page';
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const resolvedSearchParams = await searchParams;
   const query = resolvedSearchParams.q?.trim() ?? '';
   const results = query ? await searchMarkdownDocuments(query) : [];
 
-  return (
-    <section className="stack">
-      <div className="card">
-        <p className="eyebrow">Search</p>
-        <h1>문서 검색</h1>
-        <p className="muted">파일명, 제목, 본문 내용을 기준으로 markdown 문서를 찾습니다.</p>
-        <SearchForm />
-      </div>
-
-      {query ? (
-        <div className="card stack">
-          <p className="muted">
-            검색어 <strong>{query}</strong> 결과 {results.length}건
-          </p>
-          {results.length > 0 ? (
-            <ul className="search-results">
-              {results.map((result) => (
-                <li key={result.relativePath} className="search-result-item">
-                  <div className="stack search-result-main">
-                    <Link href={toDocHref(result.relativePath) as Route} className="search-result-title">
-                      <HighlightedText text={result.title} query={query} />
-                    </Link>
-                    <span className="muted mono">
-                      <HighlightedText text={result.relativePath} query={query} />
-                    </span>
-                    <p className="search-result-snippet">
-                      <HighlightedText text={result.snippet} query={query} />
-                    </p>
-                  </div>
-                  <div className="browser-entry-meta muted mono">
-                    <span>{formatFileSize(result.size)}</span>
-                    <span>{formatDateTime(result.updatedAt)}</span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="muted">검색 결과가 없습니다.</p>
-          )}
-        </div>
-      ) : (
-        <div className="card">
-          <p className="muted">검색어를 입력하면 결과를 보여드립니다.</p>
-        </div>
-      )}
-    </section>
-  );
-}
-
-function HighlightedText({ text, query }: { text: string; query: string }) {
-  const normalizedQuery = query.trim();
-
-  if (!normalizedQuery) {
-    return text;
-  }
-
-  const segments = text.split(new RegExp(`(${escapeRegExp(normalizedQuery)})`, 'gi'));
-
-  return segments.map((segment, index) =>
-    segment.toLowerCase() === normalizedQuery.toLowerCase() ? (
-      <mark key={`${segment}-${index}`} className="search-highlight">
-        {segment}
-      </mark>
-    ) : (
-      segment
-    )
-  );
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return <DesktopSearchPage initialQuery={query} initialResults={results} />;
 }
