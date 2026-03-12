@@ -21,6 +21,21 @@ html[data-theme='dark'] {
   --list-bg: rgba(24, 34, 68, 0.55);
   --pre-bg: #0b1228;
   --shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --popover: var(--panel);
+  --popover-foreground: var(--text);
+  --primary: var(--accent);
+  --primary-foreground: var(--button-text);
+  --secondary: var(--panel-2);
+  --secondary-foreground: var(--text);
+  --muted-foreground: var(--muted);
+  --accent-foreground: var(--text);
+  --border: color-mix(in srgb, var(--line) 80%, transparent);
+  --input: color-mix(in srgb, var(--panel-2) 92%, black 8%);
+  --ring: color-mix(in srgb, var(--accent) 65%, white 35%);
 }
 
 html[data-theme='light'] {
@@ -39,6 +54,21 @@ html[data-theme='light'] {
   --list-bg: #f5f8ff;
   --pre-bg: #eef3ff;
   --shadow: 0 10px 30px rgba(25, 50, 120, 0.08);
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--panel);
+  --card-foreground: var(--text);
+  --popover: var(--panel);
+  --popover-foreground: var(--text);
+  --primary: var(--accent);
+  --primary-foreground: var(--button-text);
+  --secondary: var(--panel-2);
+  --secondary-foreground: var(--text);
+  --muted-foreground: var(--muted);
+  --accent-foreground: var(--text);
+  --border: color-mix(in srgb, var(--line) 72%, transparent);
+  --input: color-mix(in srgb, white 80%, var(--panel-2) 20%);
+  --ring: color-mix(in srgb, var(--accent) 60%, white 40%);
 }
 
 * {
@@ -591,6 +621,12 @@ code {
   color: var(--text);
   background: var(--list-bg);
   font-weight: 700;
+}
+
+.recent-card {
+  background: var(--panel);
+  color: var(--text);
+  border-color: var(--line);
 }
 
 .recent-documents-list {
