@@ -281,6 +281,14 @@ code {
   grid-template-columns: 280px minmax(0, 1fr) 280px;
 }
 
+.document-layout.compact {
+  grid-template-columns: minmax(0, 1fr) 240px;
+}
+
+.document-layout.with-tree.compact {
+  grid-template-columns: 240px minmax(0, 1fr) 240px;
+}
+
 .document-main,
 .document-side,
 .document-tree-side {
@@ -291,6 +299,24 @@ code {
 .document-tree-side {
   position: sticky;
   top: 24px;
+}
+
+.document-layout-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.document-layout-toolbar-title h2 {
+  margin: 0;
+}
+
+.document-layout-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .document-card {
@@ -675,7 +701,8 @@ code {
   }
 
   .topbar-actions,
-  .search-form {
+  .search-form,
+  .document-layout-toolbar-actions {
     width: 100%;
   }
 

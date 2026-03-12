@@ -6,6 +6,7 @@ import { buildDocumentTree, collectMarkdownRelativePaths, readMarkdownDocument }
 import { formatDateTime, formatFileSize, joinSegments } from '@/shared/lib/format';
 import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/shared/lib/markdown';
 import { toBrowseHref } from '@/shared/lib/routes';
+import { DocumentReaderLayout } from '@/widgets/document/document-reader-layout';
 import { DocumentTree } from '@/widgets/document/document-tree';
 import { MarkdownView } from '@/widgets/document/markdown-view';
 import { PinnedDocuments } from '@/widgets/document/pinned-documents';
@@ -53,34 +54,32 @@ export default async function DocumentPage({ params }: { params: Promise<{ slug:
           </div>
         </div>
 
-        <div className="document-layout with-tree">
-          <div className="document-tree-side stack">
-            <DocumentTree title="현재 폴더" nodes={sidebarTree} activeRelativePath={document.relativePath} />
-          </div>
-          <div className="document-main stack">
-            <article className="card markdown-body document-card">
-              <MarkdownView content={content} currentRelativePath={document.relativePath} />
-            </article>
-            <PinnedDocuments
-              currentDocument={{
-                relativePath: document.relativePath,
-                title: document.title,
-              }}
-              emptyMessage="자주 보는 문서를 pin 하면 여기에 고정됩니다."
-            />
-            <RecentDocuments
-              currentDocument={{
-                relativePath: document.relativePath,
-                title: document.title,
-                viewedAt: document.updatedAt,
-              }}
-              emptyMessage="이 문서를 보기 시작하면 최근 본 문서가 여기에 쌓입니다."
-            />
-          </div>
-          <div className="document-side stack">
-            <TableOfContents headings={headings} />
-          </div>
-        </div>
+        <DocumentReaderLayout
+          tree={<DocumentTree title="현재 폴더" nodes={sidebarTree} activeRelativePath={document.relativePath} />}
+          document={
+            <>
+              <article className="card markdown-body document-card">
+                <MarkdownView content={content} currentRelativePath={document.relativePath} />
+              </article>
+              <PinnedDocuments
+                currentDocument={{
+                  relativePath: document.relativePath,
+                  title: document.title,
+                }}
+                emptyMessage="자주 보는 문서를 pin 하면 여기에 고정됩니다."
+              />
+              <RecentDocuments
+                currentDocument={{
+                  relativePath: document.relativePath,
+                  title: document.title,
+                  viewedAt: document.updatedAt,
+                }}
+                emptyMessage="이 문서를 보기 시작하면 최근 본 문서가 여기에 쌓입니다."
+              />
+            </>
+          }
+          toc={<TableOfContents headings={headings} />}
+        />
       </section>
     );
   } catch {
