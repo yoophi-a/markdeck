@@ -32,6 +32,7 @@ MarkDeck은 이런 markdown 자산을 **파일 브라우징 + 문서 렌더링 +
 - directory browsing
 - markdown rendering
 - mermaid code block rendering
+- full-text search by file path / title / body
 - relative markdown link navigation
 - hidden file filtering
 - configurable ignore patterns
@@ -48,6 +49,8 @@ MarkDeck은 이런 markdown 자산을 **파일 브라우징 + 문서 렌더링 +
   - content root 최상위 브라우징
 - `/browse/<path>`
   - 하위 디렉터리 브라우징
+- `/search?q=...`
+  - 파일명 / 제목 / 본문 기반 markdown 검색
 - `/docs/<path-to-file.md>`
   - markdown 문서 렌더링
 

@@ -22,6 +22,7 @@ export default function HomePage() {
             <li>Markdown 렌더링</li>
             <li>문서 간 상대 링크 이동</li>
             <li>ignore pattern 기반 숨김 처리</li>
+            <li>full-text search</li>
             <li>dark / light theme 전환</li>
             <li>content root 경로 제한</li>
           </ul>
@@ -40,6 +41,9 @@ export default function HomePage() {
           <div className="actions">
             <Link href={toBrowseHref() as Route} className="button-link">
               문서 둘러보기
+            </Link>
+            <Link href={'/search' as Route} className="button-link secondary">
+              문서 검색
             </Link>
           </div>
         </article>

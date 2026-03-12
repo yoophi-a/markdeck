@@ -20,6 +20,14 @@ export interface MarkdownDocument {
   updatedAt: string;
 }
 
+export interface SearchResult {
+  relativePath: string;
+  title: string;
+  snippet: string;
+  size: number;
+  updatedAt: string;
+}
+
 const DEFAULT_ROOT = path.resolve(process.cwd(), '..', '..');
 const CONTENT_ROOT = path.resolve(process.env.MARKDECK_CONTENT_ROOT ?? DEFAULT_ROOT);
 const DEFAULT_IGNORE_PATTERNS = ['.git', 'node_modules'];
@@ -144,6 +152,79 @@ export async function readMarkdownDocument(segments: string[]): Promise<Markdown
     size: stats.size,
     updatedAt: stats.mtime.toISOString(),
   };
+}
+
+export async function searchMarkdownDocuments(query: string): Promise<SearchResult[]> {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  const markdownFiles = await collectMarkdownFiles(CONTENT_ROOT);
+  const results = await Promise.all(
+    markdownFiles.map(async (filePath) => {
+      const relativePath = path.relative(CONTENT_ROOT, filePath).split(path.sep).join('/');
+      const [content, stats] = await Promise.all([fs.readFile(filePath, 'utf8'), fs.stat(filePath)]);
+      const title = extractTitle(relativePath, content);
+      const haystack = `${relativePath}\n${title}\n${content}`.toLowerCase();
+
+      if (!haystack.includes(normalizedQuery)) {
+        return null;
+      }
+
+      return {
+        relativePath,
+        title,
+        snippet: buildSnippet(content, normalizedQuery),
+        size: stats.size,
+        updatedAt: stats.mtime.toISOString(),
+      } satisfies SearchResult;
+    })
+  );
+
+  return results
+    .filter((value): value is SearchResult => Boolean(value))
+    .sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+}
+
+async function collectMarkdownFiles(directoryPath: string): Promise<string[]> {
+  const dirents = await fs.readdir(directoryPath, { withFileTypes: true });
+  const nestedResults = await Promise.all(
+    dirents
+      .filter((entry) => !shouldIgnoreEntry(entry.name))
+      .map(async (entry) => {
+        const entryPath = path.join(directoryPath, entry.name);
+
+        if (entry.isDirectory()) {
+          return collectMarkdownFiles(entryPath);
+        }
+
+        if (entry.isFile() && entry.name.toLowerCase().endsWith('.md')) {
+          return [entryPath];
+        }
+
+        return [];
+      })
+  );
+
+  return nestedResults.flat();
+}
+
+function buildSnippet(content: string, normalizedQuery: string) {
+  const compact = content.replace(/\s+/g, ' ').trim();
+  const index = compact.toLowerCase().indexOf(normalizedQuery);
+
+  if (index === -1) {
+    return compact.slice(0, 180);
+  }
+
+  const start = Math.max(0, index - 60);
+  const end = Math.min(compact.length, index + normalizedQuery.length + 120);
+  const prefix = start > 0 ? '…' : '';
+  const suffix = end < compact.length ? '…' : '';
+
+  return `${prefix}${compact.slice(start, end)}${suffix}`;
 }
 
 function extractTitle(relativePath: string, content: string) {
