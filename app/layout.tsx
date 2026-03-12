@@ -5,12 +5,16 @@ import { Suspense } from 'react';
 
 import { SearchForm } from '@/components/SearchForm';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { Geist } from "next/font/google";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const appTitle = process.env.MARKDECK_APP_TITLE ?? 'MarkDeck';
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko" data-theme="dark">
+    <html lang="ko" data-theme="dark" className={cn("font-sans", geist.variable)}>
       <body>
         <div className="shell">
           <header className="topbar">
