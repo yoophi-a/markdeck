@@ -399,17 +399,6 @@ async function loadApp() {
   await mainWindow.loadURL(`${url}/desktop#/`);
 }
 
-async function restartWebApp() {
-  if (webProcess) {
-    webProcess.kill();
-    webProcess = null;
-  }
-
-  if (mainWindow) {
-    await loadApp();
-  }
-}
-
 ipcMain.handle('markdeck:get-content-root', () => desktopConfig.contentRoot);
 ipcMain.handle('markdeck:choose-content-root', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
@@ -423,7 +412,6 @@ ipcMain.handle('markdeck:choose-content-root', async () => {
 
   const contentRoot = result.filePaths[0];
   writeConfig({ ...desktopConfig, contentRoot });
-  await restartWebApp();
   return contentRoot;
 });
 ipcMain.handle('markdeck:list-directory', (_event, relativePath = '') => listDirectory(relativePath));

@@ -40,7 +40,8 @@ web 환경은 기존 서버 경로를 유지한다.
 1. desktop에서도 앱 첫 진입은 web URL 로드에 의존한다.
 2. Next server가 죽으면 renderer bootstrap도 같이 흔들린다.
 3. desktop 전용 preload / IPC 구조와 Next route bootstrap이 이중 구조처럼 공존한다.
-4. desktop 전용 에러/로딩 제어가 web bootstrap 제약을 받는다.
+4. content root 같은 desktop 설정 변경은 더 이상 web server restart를 요구하지 않는다.
+5. desktop 전용 에러/로딩 제어는 여전히 web bootstrap 제약을 일부 받는다.
 
 ## 단계적 제거 전략
 

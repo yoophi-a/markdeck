@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import {
   buildDesktopDocumentTree,
-  chooseDesktopContentRoot,
+  chooseDesktopContentRoot as chooseDesktopContentRootFromApi,
   collectDesktopMarkdownRelativePaths,
   getDesktopContentRoot,
   listDesktopDirectory,
@@ -88,6 +88,6 @@ export function useDesktopAssetQuery(relativePath: string, enabled = true) {
   });
 }
 
-export async function chooseDesktopContentRootAndReload() {
-  return chooseDesktopContentRoot();
+export async function chooseDesktopContentRoot() {
+  return chooseDesktopContentRootFromApi();
 }

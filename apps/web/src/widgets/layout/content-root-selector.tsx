@@ -5,7 +5,7 @@ import { FolderOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
-import { chooseDesktopContentRootAndReload, desktopQueryKeys, useDesktopContentRootQuery } from '@/platform/desktop/renderer/desktop-queries';
+import { chooseDesktopContentRoot, desktopQueryKeys, useDesktopContentRootQuery } from '@/platform/desktop/renderer/desktop-queries';
 import { Button } from '@/shared/ui/button';
 
 export function ContentRootSelector() {
@@ -24,7 +24,7 @@ export function ContentRootSelector() {
   }
 
   async function handleChooseRoot() {
-    const nextRoot = await chooseDesktopContentRootAndReload();
+    const nextRoot = await chooseDesktopContentRoot();
     if (nextRoot) {
       queryClient.setQueryData(desktopQueryKeys.contentRoot, nextRoot);
     }
