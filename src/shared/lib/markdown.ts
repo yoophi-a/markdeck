@@ -12,6 +12,11 @@ export interface WikiLinkResolver {
   (rawTarget: string): string | null;
 }
 
+interface ParsedWikiLinkTarget {
+  documentPath: string;
+  section: string;
+}
+
 export function extractCodeText(children: React.ReactNode): string {
   if (typeof children === 'string') {
     return children;
@@ -91,18 +96,20 @@ export function preprocessWikiLinks(content: string, resolveWikiLink: WikiLinkRe
 
     const resolvedHref = resolveWikiLink(targetPart);
     if (!resolvedHref) {
-      return labelPart || targetPart;
+      return labelPart || formatWikiLinkLabel(targetPart);
     }
 
-    const linkLabel = labelPart || path.posix.basename(targetPart, '.md');
+    const linkLabel = labelPart || formatWikiLinkLabel(targetPart);
     return `[${linkLabel}](${resolvedHref})`;
   });
 }
 
 export function resolveWikiLinkPath(currentRelativePath: string, rawTarget: string, knownDocuments: string[]) {
-  const normalizedTarget = rawTarget.trim().replace(/^\/+/, '').replace(/\\/g, '/');
+  const { documentPath } = parseWikiLinkTarget(rawTarget);
+  const normalizedTarget = documentPath.trim().replace(/^\/+/, '').replace(/\\/g, '/');
+
   if (!normalizedTarget) {
-    return null;
+    return currentRelativePath;
   }
 
   const currentDirectory = path.posix.dirname(`/${currentRelativePath}`);
@@ -135,8 +142,38 @@ export function resolveWikiLinkPath(currentRelativePath: string, rawTarget: stri
 }
 
 export function resolveWikiLinkHref(currentRelativePath: string, rawTarget: string, knownDocuments: string[]) {
+  const { section } = parseWikiLinkTarget(rawTarget);
   const relativePath = resolveWikiLinkPath(currentRelativePath, rawTarget, knownDocuments);
-  return relativePath ? toDocHref(relativePath) : null;
+
+  if (!relativePath) {
+    return null;
+  }
+
+  const sectionAnchor = section ? `#${slugify(section)}` : '';
+  return `${toDocHref(relativePath)}${sectionAnchor}`;
+}
+
+function parseWikiLinkTarget(rawTarget: string): ParsedWikiLinkTarget {
+  const [documentPath = '', ...sectionParts] = rawTarget.trim().split('#');
+
+  return {
+    documentPath: documentPath.trim(),
+    section: sectionParts.join('#').trim(),
+  };
+}
+
+function formatWikiLinkLabel(rawTarget: string) {
+  const { documentPath, section } = parseWikiLinkTarget(rawTarget);
+
+  if (documentPath) {
+    return path.posix.basename(documentPath, '.md');
+  }
+
+  if (section) {
+    return section;
+  }
+
+  return rawTarget;
 }
 
 function stripMarkdownInline(value: string) {
