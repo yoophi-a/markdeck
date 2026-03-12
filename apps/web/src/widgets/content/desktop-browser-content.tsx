@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-import { listDesktopDirectory } from '@/platform/desktop/renderer/desktop-api';
+import { getDesktopBrowserEntries } from '@/platform/desktop/renderer/desktop-content';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 import type { BrowserEntry } from '@/shared/lib/content-types';
 import { prettyPath } from '@/shared/lib/format';
@@ -26,7 +26,7 @@ export function DesktopBrowserContent({ segments, initialEntries }: DesktopBrows
 
     setEntries(null);
 
-    void listDesktopDirectory(segments.join('/'))
+    void getDesktopBrowserEntries(segments.join('/'))
       .then((nextEntries) => setEntries(nextEntries))
       .catch(() => setEntries([]));
   }, [desktopRenderer, initialEntries, segments]);

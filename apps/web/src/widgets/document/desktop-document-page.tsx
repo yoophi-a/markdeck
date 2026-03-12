@@ -4,7 +4,7 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { useEffect, useMemo, useState } from 'react';
 
-import { buildDesktopDocumentTree, collectDesktopMarkdownRelativePaths, readDesktopMarkdownDocument } from '@/platform/desktop/renderer/desktop-api';
+import { getDesktopDocumentPageData } from '@/platform/desktop/renderer/desktop-content';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 import type { DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
@@ -47,14 +47,9 @@ export function DesktopDocumentPage({
     setDocument(null);
 
     const relativePath = slug.join('/');
-    const directoryPath = slug.slice(0, -1).join('/');
 
-    void Promise.all([
-      readDesktopMarkdownDocument(relativePath),
-      collectDesktopMarkdownRelativePaths(),
-      buildDesktopDocumentTree(directoryPath, 1),
-    ])
-      .then(([nextDocument, nextKnownDocuments, nextSidebarTree]) => {
+    void getDesktopDocumentPageData(relativePath)
+      .then(({ document: nextDocument, knownDocuments: nextKnownDocuments, sidebarTree: nextSidebarTree }) => {
         setDocument(nextDocument);
         setKnownDocuments(nextKnownDocuments);
         setSidebarTree(nextSidebarTree);

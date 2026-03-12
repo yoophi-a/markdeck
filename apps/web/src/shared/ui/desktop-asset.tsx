@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import { isDesktopRenderer, readDesktopAsset } from '@/platform/desktop/renderer/desktop-api';
+import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
+import { getDesktopAsset } from '@/platform/desktop/renderer/desktop-content';
 
 interface DesktopAssetLinkProps {
   relativePath: string;
@@ -44,7 +45,7 @@ function useDesktopAssetObjectUrl(relativePath: string) {
     let active = true;
     let nextObjectUrl: string | null = null;
 
-    void readDesktopAsset(relativePath)
+    void getDesktopAsset(relativePath)
       .then((asset) => {
         if (!active || !asset) {
           return;

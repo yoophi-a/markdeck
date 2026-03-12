@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 import { SearchForm } from '@/features/search/ui/search-form';
-import { searchDesktopMarkdownDocuments } from '@/platform/desktop/renderer/desktop-api';
+import { searchDesktopDocuments } from '@/platform/desktop/renderer/desktop-content';
 import type { SearchResult } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { toDocHref } from '@/shared/lib/routes';
@@ -27,7 +27,7 @@ export function DesktopSearchPage({ initialQuery, initialResults }: DesktopSearc
       return;
     }
 
-    void searchDesktopMarkdownDocuments(query)
+    void searchDesktopDocuments(query)
       .then((nextResults) => setResults(nextResults))
       .catch(() => undefined);
   }, [query]);
