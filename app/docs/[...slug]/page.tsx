@@ -23,7 +23,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ slug:
     const directorySegments = slug.slice(0, -1);
     const [knownDocuments, sidebarTree] = await Promise.all([
       collectMarkdownRelativePaths(),
-      buildDocumentTree(directorySegments, 2),
+      buildDocumentTree(directorySegments, 1),
     ]);
     const content = preprocessWikiLinks(document.content, (rawTarget) =>
       resolveWikiLinkHref(document.relativePath, rawTarget, knownDocuments)

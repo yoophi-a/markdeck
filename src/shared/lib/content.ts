@@ -171,7 +171,7 @@ export async function buildDocumentTree(segments: string[] = [], depth = 2): Pro
             name: entry.name,
             relativePath: entryRelativePath,
             type: 'directory',
-            children: depth > 1 ? await buildDocumentTree([...segments, entry.name], depth - 1) : [],
+            children: depth > 1 ? await buildDocumentTree([...segments, entry.name], depth - 1) : undefined,
           };
         }
 
