@@ -7,6 +7,8 @@ export interface BrowserEntry {
   name: string;
   relativePath: string;
   type: EntryType;
+  size?: number;
+  updatedAt?: string;
 }
 
 export interface MarkdownDocument {
@@ -14,6 +16,8 @@ export interface MarkdownDocument {
   relativePath: string;
   content: string;
   title: string;
+  size: number;
+  updatedAt: string;
 }
 
 const DEFAULT_ROOT = path.resolve(process.cwd(), '..', '..');
@@ -74,29 +78,51 @@ export async function listDirectory(segments: string[] = []): Promise<BrowserEnt
   const absolutePath = assertSafePath(relativePath);
   const dirents = await fs.readdir(absolutePath, { withFileTypes: true });
 
-  return dirents
-    .filter((entry) => !shouldIgnoreEntry(entry.name))
-    .map<BrowserEntry>((entry) => {
-      const entryRelativePath = normalizeSegments([...segments, entry.name]).join('/');
+  const entries = await Promise.all(
+    dirents
+      .filter((entry) => !shouldIgnoreEntry(entry.name))
+      .map(async (entry) => {
+        const entryRelativePath = normalizeSegments([...segments, entry.name]).join('/');
+        const entryAbsolutePath = path.join(absolutePath, entry.name);
+        const stats = await fs.stat(entryAbsolutePath);
 
-      if (entry.isDirectory()) {
-        return { name: entry.name, relativePath: entryRelativePath, type: 'directory' };
-      }
+        if (entry.isDirectory()) {
+          return {
+            name: entry.name,
+            relativePath: entryRelativePath,
+            type: 'directory' as const,
+            updatedAt: stats.mtime.toISOString(),
+          };
+        }
 
-      if (entry.isFile() && entry.name.toLowerCase().endsWith('.md')) {
-        return { name: entry.name, relativePath: entryRelativePath, type: 'markdown' };
-      }
+        if (entry.isFile() && entry.name.toLowerCase().endsWith('.md')) {
+          return {
+            name: entry.name,
+            relativePath: entryRelativePath,
+            type: 'markdown' as const,
+            size: stats.size,
+            updatedAt: stats.mtime.toISOString(),
+          };
+        }
 
-      return { name: entry.name, relativePath: entryRelativePath, type: 'file' };
-    })
-    .sort((a, b) => {
-      if (a.type === b.type) return a.name.localeCompare(b.name);
-      if (a.type === 'directory') return -1;
-      if (b.type === 'directory') return 1;
-      if (a.type === 'markdown') return -1;
-      if (b.type === 'markdown') return 1;
-      return a.name.localeCompare(b.name);
-    });
+        return {
+          name: entry.name,
+          relativePath: entryRelativePath,
+          type: 'file' as const,
+          size: stats.size,
+          updatedAt: stats.mtime.toISOString(),
+        };
+      })
+  );
+
+  return entries.sort((a, b) => {
+    if (a.type === b.type) return a.name.localeCompare(b.name);
+    if (a.type === 'directory') return -1;
+    if (b.type === 'directory') return 1;
+    if (a.type === 'markdown') return -1;
+    if (b.type === 'markdown') return 1;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 export async function readMarkdownDocument(segments: string[]): Promise<MarkdownDocument> {
@@ -107,7 +133,7 @@ export async function readMarkdownDocument(segments: string[]): Promise<Markdown
   }
 
   const absolutePath = assertSafePath(relativePath);
-  const content = await fs.readFile(absolutePath, 'utf8');
+  const [content, stats] = await Promise.all([fs.readFile(absolutePath, 'utf8'), fs.stat(absolutePath)]);
   const title = extractTitle(relativePath, content);
 
   return {
@@ -115,6 +141,8 @@ export async function readMarkdownDocument(segments: string[]): Promise<Markdown
     relativePath,
     content,
     title,
+    size: stats.size,
+    updatedAt: stats.mtime.toISOString(),
   };
 }
 

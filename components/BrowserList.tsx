@@ -3,6 +3,7 @@ import type { Route } from 'next';
 
 import type { BrowserEntry } from '@/lib/content';
 import { toBrowseHref, toDocHref } from '@/lib/content';
+import { formatDateTime, formatFileSize } from '@/lib/format';
 
 interface BrowserListProps {
   entries: BrowserEntry[];
@@ -15,13 +16,19 @@ export function BrowserList({ entries }: BrowserListProps) {
         const href = entry.type === 'directory' ? toBrowseHref(entry.relativePath) : entry.type === 'markdown' ? toDocHref(entry.relativePath) : undefined;
 
         return (
-          <li key={`${entry.type}:${entry.relativePath}`}>
-            <span className="entry-type">{iconForType(entry.type)}</span>
-            {href ? (
-              <Link href={href as Route}>{entry.name}</Link>
-            ) : (
-              <span className="muted">{entry.name}</span>
-            )}
+          <li key={`${entry.type}:${entry.relativePath}`} className="browser-list-item">
+            <div className="browser-entry-main">
+              <span className="entry-type">{iconForType(entry.type)}</span>
+              {href ? (
+                <Link href={href as Route}>{entry.name}</Link>
+              ) : (
+                <span className="muted">{entry.name}</span>
+              )}
+            </div>
+            <div className="browser-entry-meta muted mono">
+              <span>{entry.type === 'directory' ? 'folder' : formatFileSize(entry.size)}</span>
+              <span>{formatDateTime(entry.updatedAt)}</span>
+            </div>
           </li>
         );
       })}

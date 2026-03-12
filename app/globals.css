@@ -187,20 +187,49 @@ code {
 .browser-list li {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
   border-radius: 12px;
   background: var(--list-bg);
+}
+
+.browser-list-item {
+  flex-wrap: wrap;
+}
+
+.browser-entry-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.browser-entry-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  font-size: 0.82rem;
 }
 
 .entry-type {
   width: 24px;
 }
 
-.breadcrumb-row {
+.breadcrumbs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.breadcrumb-item.current {
+  color: var(--muted);
+}
+
+.breadcrumb-separator {
+  color: var(--muted);
 }
 
 .markdown-body {
@@ -222,6 +251,22 @@ code {
   padding: 16px;
   border-radius: 12px;
   background: var(--pre-bg);
+}
+
+.code-block-shell {
+  margin: 16px 0;
+}
+
+.code-block-label {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: lowercase;
 }
 
 .markdown-body table {
@@ -260,6 +305,13 @@ code {
 .mermaid-error-title {
   margin-top: 0;
   font-weight: 700;
+}
+
+.document-meta {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 0.84rem;
 }
 
 @media (max-width: 768px) {
