@@ -7,6 +7,7 @@ import { resolveAssetHref, isImageAsset } from '@/shared/lib/assets';
 import { resolveMarkdownLink } from '@/shared/lib/content-links';
 import { createSlugger, extractCodeText } from '@/shared/lib/markdown';
 import { CodeBlock } from '@/shared/ui/code-block';
+import { DesktopAssetLink } from '@/shared/ui/desktop-asset';
 import { MarkdownImage } from '@/shared/ui/markdown-image';
 import { MermaidBlock } from '@/shared/ui/mermaid-block';
 
@@ -44,10 +45,12 @@ export function MarkdownView({ content, currentRelativePath }: MarkdownViewProps
 
           if (!href.endsWith('.md')) {
             const assetHref = resolveAssetHref(currentRelativePath, href);
+            const relativeAssetPath = assetHref.replace(/^\/assets\//, '');
+
             return (
-              <a href={assetHref} target="_blank" rel="noreferrer">
+              <DesktopAssetLink relativePath={decodeURIComponent(relativeAssetPath)} fallbackHref={assetHref}>
                 {children}
-              </a>
+              </DesktopAssetLink>
             );
           }
 
@@ -61,14 +64,15 @@ export function MarkdownView({ content, currentRelativePath }: MarkdownViewProps
           }
 
           if (!isImageAsset(src)) {
+            const relativeAssetPath = assetHref.replace(/^\/assets\//, '');
             return (
-              <a href={assetHref} target="_blank" rel="noreferrer">
+              <DesktopAssetLink relativePath={decodeURIComponent(relativeAssetPath)} fallbackHref={assetHref}>
                 {alt || src}
-              </a>
+              </DesktopAssetLink>
             );
           }
 
-          return <MarkdownImage src={assetHref} alt={alt} />;
+          return <MarkdownImage src={src} alt={alt} currentRelativePath={currentRelativePath} />;
         },
         h1: ({ children }) => <Heading level={1} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
         h2: ({ children }) => <Heading level={2} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,

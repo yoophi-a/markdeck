@@ -1,4 +1,4 @@
-import type { BrowserEntry, DocumentTreeNode, MarkdownDocument, SearchResult } from '@/shared/lib/content-types';
+import type { AssetPayload, BrowserEntry, DocumentTreeNode, MarkdownDocument, SearchResult } from '@/shared/lib/content-types';
 
 function getDesktopApi() {
   return window.markdeckDesktop;
@@ -34,4 +34,8 @@ export function collectDesktopMarkdownRelativePaths(): Promise<string[]> {
 
 export function searchDesktopMarkdownDocuments(query: string): Promise<SearchResult[]> {
   return getDesktopApi()?.searchMarkdownDocuments(query) ?? Promise.resolve([]);
+}
+
+export function readDesktopAsset(relativePath: string): Promise<AssetPayload | null> {
+  return getDesktopApi()?.readAsset(relativePath) ?? Promise.resolve(null);
 }

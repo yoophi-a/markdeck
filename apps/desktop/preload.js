@@ -8,4 +8,5 @@ contextBridge.exposeInMainWorld('markdeckDesktop', {
   readMarkdownDocument: (relativePath) => ipcRenderer.invoke('markdeck:read-markdown-document', relativePath),
   collectMarkdownRelativePaths: () => ipcRenderer.invoke('markdeck:collect-markdown-relative-paths'),
   searchMarkdownDocuments: (query) => ipcRenderer.invoke('markdeck:search-markdown-documents', query),
+  readAsset: (relativePath) => ipcRenderer.invoke('markdeck:read-asset', relativePath),
 });

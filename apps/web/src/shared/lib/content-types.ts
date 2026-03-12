@@ -31,3 +31,10 @@ export interface SearchResult {
   size: number;
   updatedAt: string;
 }
+
+export interface AssetPayload {
+  relativePath: string;
+  contentType: string;
+  dataBase64: string;
+  size: number;
+}

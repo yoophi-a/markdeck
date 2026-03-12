@@ -10,6 +10,7 @@ declare global {
       readMarkdownDocument: (relativePath: string) => Promise<import('@/shared/lib/content-types').MarkdownDocument>;
       collectMarkdownRelativePaths: () => Promise<string[]>;
       searchMarkdownDocuments: (query: string) => Promise<import('@/shared/lib/content-types').SearchResult[]>;
+      readAsset: (relativePath: string) => Promise<import('@/shared/lib/content-types').AssetPayload | null>;
     };
   }
 }

@@ -10,6 +10,18 @@ const WEB_URL = process.env.MARKDECK_WEB_URL || `http://127.0.0.1:${WEB_PORT}`;
 const isDev = !app.isPackaged;
 const configPath = path.join(app.getPath('userData'), 'markdeck-desktop.json');
 const DEFAULT_IGNORE_PATTERNS = ['.git', 'node_modules'];
+const MIME_TYPES = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
+  '.bmp': 'image/bmp',
+  '.pdf': 'application/pdf',
+  '.txt': 'text/plain; charset=utf-8',
+  '.md': 'text/markdown; charset=utf-8',
+};
 
 let mainWindow = null;
 let webProcess = null;
@@ -266,6 +278,20 @@ async function searchMarkdownDocuments(query) {
   return results.filter(Boolean).sort((a, b) => a.relativePath.localeCompare(b.relativePath));
 }
 
+async function readAsset(relativePath) {
+  const normalizedPath = normalizeRelativePath(relativePath);
+  const absolutePath = assertSafePath(normalizedPath);
+  const [buffer, stats] = await Promise.all([fsp.readFile(absolutePath), fsp.stat(absolutePath)]);
+  const extension = path.extname(absolutePath).toLowerCase();
+
+  return {
+    relativePath: normalizedPath,
+    contentType: MIME_TYPES[extension] || 'application/octet-stream',
+    dataBase64: buffer.toString('base64'),
+    size: stats.size,
+  };
+}
+
 function buildSnippet(content, normalizedQuery) {
   const compact = content.replace(/\s+/g, ' ').trim();
   const index = compact.toLowerCase().indexOf(normalizedQuery);
@@ -405,6 +431,7 @@ ipcMain.handle('markdeck:build-document-tree', (_event, relativePath = '', depth
 ipcMain.handle('markdeck:read-markdown-document', (_event, relativePath) => readMarkdownDocument(relativePath));
 ipcMain.handle('markdeck:collect-markdown-relative-paths', () => collectMarkdownRelativePaths());
 ipcMain.handle('markdeck:search-markdown-documents', (_event, query) => searchMarkdownDocuments(query));
+ipcMain.handle('markdeck:read-asset', (_event, relativePath) => readAsset(relativePath));
 
 app.whenReady().then(async () => {
   createWindow();

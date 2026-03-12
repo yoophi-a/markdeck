@@ -1,14 +1,14 @@
-import Image from 'next/image';
+'use client';
+
+import { resolveAssetHref } from '@/shared/lib/assets';
+import { DesktopAssetImage } from '@/shared/ui/desktop-asset';
 
 interface MarkdownImageProps {
   src: string;
   alt: string;
+  currentRelativePath: string;
 }
 
-export function MarkdownImage({ src, alt }: MarkdownImageProps) {
-  return (
-    <span className="markdown-image-wrap">
-      <Image src={src} alt={alt} width={1600} height={900} className="markdown-image" unoptimized />
-    </span>
-  );
+export function MarkdownImage({ src, alt, currentRelativePath }: MarkdownImageProps) {
+  return <DesktopAssetImage relativePath={src} fallbackSrc={resolveAssetHref(currentRelativePath, src)} alt={alt} />;
 }
