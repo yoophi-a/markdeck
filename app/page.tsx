@@ -3,6 +3,7 @@ import type { Route } from 'next';
 
 import { getContentRoot, getIgnorePatterns } from '@/shared/lib/content';
 import { toBrowseHref } from '@/shared/lib/routes';
+import { PinnedDocuments } from '@/widgets/document/pinned-documents';
 import { RecentDocuments } from '@/widgets/document/recent-documents';
 
 export default function HomePage() {
@@ -55,6 +56,7 @@ export default function HomePage() {
         </article>
       </div>
 
+      <PinnedDocuments />
       <RecentDocuments />
     </section>
   );

@@ -8,6 +8,7 @@ import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/sha
 import { toBrowseHref } from '@/shared/lib/routes';
 import { DocumentTree } from '@/widgets/document/document-tree';
 import { MarkdownView } from '@/widgets/document/markdown-view';
+import { PinnedDocuments } from '@/widgets/document/pinned-documents';
 import { RecentDocuments } from '@/widgets/document/recent-documents';
 import { TableOfContents } from '@/widgets/document/table-of-contents';
 import { Breadcrumbs } from '@/widgets/navigation/breadcrumbs';
@@ -55,6 +56,13 @@ export default async function DocumentPage({ params }: { params: Promise<{ slug:
             <article className="card markdown-body document-card">
               <MarkdownView content={content} currentRelativePath={document.relativePath} />
             </article>
+            <PinnedDocuments
+              currentDocument={{
+                relativePath: document.relativePath,
+                title: document.title,
+              }}
+              emptyMessage="자주 보는 문서를 pin 하면 여기에 고정됩니다."
+            />
             <RecentDocuments
               currentDocument={{
                 relativePath: document.relativePath,

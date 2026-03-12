@@ -567,6 +567,17 @@ code {
   align-items: center;
 }
 
+.document-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pin-toggle-button {
+  flex: 0 0 auto;
+}
+
 .document-tree-list {
   list-style: none;
   margin: 0;
