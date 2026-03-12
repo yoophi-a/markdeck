@@ -277,12 +277,18 @@ code {
   align-items: start;
 }
 
+.document-layout.with-tree {
+  grid-template-columns: 280px minmax(0, 1fr) 280px;
+}
+
 .document-main,
-.document-side {
+.document-side,
+.document-tree-side {
   min-width: 0;
 }
 
-.document-side {
+.document-side,
+.document-tree-side {
   position: sticky;
   top: 24px;
 }
@@ -542,12 +548,68 @@ code {
   align-items: center;
 }
 
+.document-tree-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.document-tree-list.nested {
+  margin-top: 6px;
+}
+
+.document-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.document-tree-icon {
+  display: inline-flex;
+  width: 18px;
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.document-tree-link {
+  display: inline-flex;
+  min-width: 0;
+  word-break: break-word;
+  color: var(--muted);
+}
+
+.document-tree-link:hover {
+  color: var(--text);
+}
+
+.document-tree-link.active {
+  color: var(--text);
+  font-weight: 700;
+}
+
+@media (max-width: 1180px) {
+  .document-layout.with-tree {
+    grid-template-columns: minmax(0, 1fr) 280px;
+  }
+
+  .document-tree-side {
+    position: static;
+    order: -1;
+  }
+}
+
 @media (max-width: 1024px) {
-  .document-layout {
+  .document-layout,
+  .document-layout.with-tree {
     grid-template-columns: 1fr;
   }
 
-  .document-side {
+  .document-side,
+  .document-tree-side {
     position: static;
     order: -1;
   }

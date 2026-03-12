@@ -15,6 +15,13 @@ export interface BrowserEntry {
   updatedAt?: string;
 }
 
+export interface DocumentTreeNode {
+  name: string;
+  relativePath: string;
+  type: 'directory' | 'markdown';
+  children?: DocumentTreeNode[];
+}
+
 export interface MarkdownDocument {
   absolutePath: string;
   relativePath: string;
@@ -77,6 +84,24 @@ function matchesPattern(entryName: string, pattern: string) {
   return false;
 }
 
+function sortBrowserEntries(a: BrowserEntry, b: BrowserEntry) {
+  if (a.type === b.type) return a.name.localeCompare(b.name);
+  if (a.type === 'directory') return -1;
+  if (b.type === 'directory') return 1;
+  if (a.type === 'markdown') return -1;
+  if (b.type === 'markdown') return 1;
+  return a.name.localeCompare(b.name);
+}
+
+function sortTreeNodes(a: DocumentTreeNode, b: DocumentTreeNode) {
+  if (a.type === b.type) {
+    return a.name.localeCompare(b.name);
+  }
+
+  if (a.type === 'directory') return -1;
+  return 1;
+}
+
 export function getContentRoot() {
   return CONTENT_ROOT;
 }
@@ -127,14 +152,42 @@ export async function listDirectory(segments: string[] = []): Promise<BrowserEnt
       })
   );
 
-  return entries.sort((a, b) => {
-    if (a.type === b.type) return a.name.localeCompare(b.name);
-    if (a.type === 'directory') return -1;
-    if (b.type === 'directory') return 1;
-    if (a.type === 'markdown') return -1;
-    if (b.type === 'markdown') return 1;
-    return a.name.localeCompare(b.name);
-  });
+  return entries.sort(sortBrowserEntries);
+}
+
+export async function buildDocumentTree(segments: string[] = [], depth = 2): Promise<DocumentTreeNode[]> {
+  const relativePath = normalizeSegments(segments).join('/');
+  const absolutePath = assertSafePath(relativePath);
+  const dirents = await fs.readdir(absolutePath, { withFileTypes: true });
+
+  const nodes = await Promise.all<DocumentTreeNode | null>(
+    dirents
+      .filter((entry) => !shouldIgnoreEntry(entry.name))
+      .map(async (entry): Promise<DocumentTreeNode | null> => {
+        const entryRelativePath = normalizeSegments([...segments, entry.name]).join('/');
+
+        if (entry.isDirectory()) {
+          return {
+            name: entry.name,
+            relativePath: entryRelativePath,
+            type: 'directory',
+            children: depth > 1 ? await buildDocumentTree([...segments, entry.name], depth - 1) : [],
+          };
+        }
+
+        if (entry.isFile() && entry.name.toLowerCase().endsWith('.md')) {
+          return {
+            name: entry.name,
+            relativePath: entryRelativePath,
+            type: 'markdown',
+          };
+        }
+
+        return null;
+      })
+  );
+
+  return nodes.filter((node): node is DocumentTreeNode => node !== null).sort(sortTreeNodes);
 }
 
 export async function readMarkdownDocument(segments: string[]): Promise<MarkdownDocument> {
