@@ -564,8 +564,24 @@ code {
 .document-tree-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-height: 32px;
+}
+
+.document-tree-toggle {
+  flex: 0 0 auto;
+  color: var(--muted);
+}
+
+.document-tree-toggle-placeholder {
+  width: 24px;
+  flex: 0 0 auto;
+}
+
+.document-tree-toggle-spacer {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
 }
 
 .document-tree-icon {
