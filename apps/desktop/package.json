@@ -1,0 +1,14 @@
+{
+  "name": "@markdeck/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Electron desktop shell for MarkDeck",
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron ."
+  },
+  "dependencies": {
+    "electron": "^37.2.0"
+  }
+}
