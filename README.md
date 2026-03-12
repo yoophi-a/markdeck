@@ -149,6 +149,14 @@ npm start
 
 웹 앱은 `apps/web`에 위치하고, 루트 스크립트는 workspace를 통해 `@markdeck/web`를 실행합니다.
 
+### 5) Run desktop app in development
+
+```bash
+npm run desktop:dev
+```
+
+Electron desktop 앱은 개발 모드에서 `apps/web`의 Next.js 서버를 자동으로 띄운 뒤, 해당 URL을 로드합니다.
+
 ## Environment variables
 
 | Name | Required | Description |
