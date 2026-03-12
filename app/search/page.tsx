@@ -31,10 +31,14 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
                 <li key={result.relativePath} className="search-result-item">
                   <div className="stack search-result-main">
                     <Link href={toDocHref(result.relativePath) as Route} className="search-result-title">
-                      {result.title}
+                      <HighlightedText text={result.title} query={query} />
                     </Link>
-                    <span className="muted mono">{result.relativePath}</span>
-                    <p className="search-result-snippet">{result.snippet}</p>
+                    <span className="muted mono">
+                      <HighlightedText text={result.relativePath} query={query} />
+                    </span>
+                    <p className="search-result-snippet">
+                      <HighlightedText text={result.snippet} query={query} />
+                    </p>
                   </div>
                   <div className="browser-entry-meta muted mono">
                     <span>{formatFileSize(result.size)}</span>
@@ -54,4 +58,28 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       )}
     </section>
   );
+}
+
+function HighlightedText({ text, query }: { text: string; query: string }) {
+  const normalizedQuery = query.trim();
+
+  if (!normalizedQuery) {
+    return text;
+  }
+
+  const segments = text.split(new RegExp(`(${escapeRegExp(normalizedQuery)})`, 'gi'));
+
+  return segments.map((segment, index) =>
+    segment.toLowerCase() === normalizedQuery.toLowerCase() ? (
+      <mark key={`${segment}-${index}`} className="search-highlight">
+        {segment}
+      </mark>
+    ) : (
+      segment
+    )
+  );
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }

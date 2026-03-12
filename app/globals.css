@@ -497,6 +497,14 @@ code {
   color: var(--muted);
 }
 
+.search-highlight {
+  padding: 0 0.18em;
+  border-radius: 0.35rem;
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
+  color: var(--text);
+  font-weight: 700;
+}
+
 .markdown-image-wrap {
   display: block;
   margin: 18px 0;
