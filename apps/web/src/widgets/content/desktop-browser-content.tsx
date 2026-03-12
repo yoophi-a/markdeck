@@ -1,6 +1,7 @@
 'use client';
 
-import { useDesktopDirectoryQuery } from '@/platform/desktop/renderer/desktop-queries';
+import { DesktopContentRootEmptyState, DesktopErrorFallback } from '@/platform/desktop/renderer/desktop-error-fallback';
+import { useDesktopContentRootQuery, useDesktopDirectoryQuery } from '@/platform/desktop/renderer/desktop-queries';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 import type { BrowserEntry } from '@/shared/lib/content-types';
 import { prettyPath } from '@/shared/lib/format';
@@ -15,8 +16,17 @@ interface DesktopBrowserContentProps {
 export function DesktopBrowserContent({ segments, initialEntries }: DesktopBrowserContentProps) {
   const desktopRenderer = useDesktopRenderer();
   const relativePath = segments.join('/');
+  const contentRootQuery = useDesktopContentRootQuery(desktopRenderer);
   const entriesQuery = useDesktopDirectoryQuery(relativePath, desktopRenderer);
   const entries = desktopRenderer ? entriesQuery.data : initialEntries;
+
+  if (desktopRenderer && !contentRootQuery.isLoading && !contentRootQuery.data) {
+    return <DesktopContentRootEmptyState />;
+  }
+
+  if (desktopRenderer && entriesQuery.isError) {
+    return <DesktopErrorFallback title="폴더를 불러오지 못했습니다." error={entriesQuery.error} onRetry={() => void entriesQuery.refetch()} />;
+  }
 
   return (
     <section className="stack">

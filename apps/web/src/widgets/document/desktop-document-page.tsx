@@ -2,7 +2,8 @@
 
 import { useMemo } from 'react';
 
-import { useDesktopDocumentPageQuery } from '@/platform/desktop/renderer/desktop-queries';
+import { DesktopContentRootEmptyState, DesktopErrorFallback } from '@/platform/desktop/renderer/desktop-error-fallback';
+import { useDesktopContentRootQuery, useDesktopDocumentPageQuery } from '@/platform/desktop/renderer/desktop-queries';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 import type { DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
@@ -27,17 +28,26 @@ interface DesktopDocumentPageProps {
 export function DesktopDocumentPage({ slug, initialDocument = null, initialKnownDocuments, initialSidebarTree }: DesktopDocumentPageProps) {
   const desktopRenderer = useDesktopRenderer();
   const relativePath = slug.join('/');
+  const contentRootQuery = useDesktopContentRootQuery(desktopRenderer);
   const documentPageQuery = useDesktopDocumentPageQuery(relativePath, desktopRenderer);
   const document = desktopRenderer ? documentPageQuery.data?.document ?? null : initialDocument;
   const knownDocuments = desktopRenderer ? documentPageQuery.data?.knownDocuments ?? [] : initialKnownDocuments;
   const sidebarTree = desktopRenderer ? documentPageQuery.data?.sidebarTree ?? [] : initialSidebarTree;
+
+  if (desktopRenderer && !contentRootQuery.isLoading && !contentRootQuery.data) {
+    return <DesktopContentRootEmptyState />;
+  }
+
+  if (desktopRenderer && documentPageQuery.isError) {
+    return <DesktopErrorFallback title="문서를 불러오지 못했습니다." error={documentPageQuery.error} onRetry={() => void documentPageQuery.refetch()} />;
+  }
 
   if (!document) {
     return (
       <section className="stack document-page">
         <div className="card document-header-card">
           <p className="eyebrow">Document</p>
-          <h1>{desktopRenderer && documentPageQuery.isError ? '문서를 불러오지 못했습니다.' : '문서 불러오는 중…'}</h1>
+          <h1>문서 불러오는 중…</h1>
           <Breadcrumbs segments={slug.slice(0, -1)} currentLabel={slug.at(-1)} />
         </div>
       </section>

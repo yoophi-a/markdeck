@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 
 import { SearchForm } from '@/features/search/ui/search-form';
 import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
-import { useDesktopSearchQuery } from '@/platform/desktop/renderer/desktop-queries';
+import { DesktopContentRootEmptyState, DesktopErrorFallback } from '@/platform/desktop/renderer/desktop-error-fallback';
+import { useDesktopContentRootQuery, useDesktopSearchQuery } from '@/platform/desktop/renderer/desktop-queries';
 import type { SearchResult } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { toDocHref } from '@/shared/lib/routes';
@@ -18,6 +19,7 @@ interface DesktopSearchPageProps {
 export function DesktopSearchPage({ initialQuery, initialResults }: DesktopSearchPageProps) {
   const [query, setQuery] = useState(initialQuery);
   const desktopRenderer = isDesktopRenderer();
+  const contentRootQuery = useDesktopContentRootQuery(desktopRenderer);
   const resultsQuery = useDesktopSearchQuery(query, desktopRenderer);
   const results = desktopRenderer ? resultsQuery.data ?? [] : initialResults;
 
@@ -36,6 +38,14 @@ export function DesktopSearchPage({ initialQuery, initialResults }: DesktopSearc
 
     setQuery(initialQuery);
   }, [desktopRenderer, initialQuery]);
+
+  if (desktopRenderer && !contentRootQuery.isLoading && !contentRootQuery.data) {
+    return <DesktopContentRootEmptyState />;
+  }
+
+  if (desktopRenderer && resultsQuery.isError) {
+    return <DesktopErrorFallback title="검색 결과를 불러오지 못했습니다." error={resultsQuery.error} onRetry={() => void resultsQuery.refetch()} />;
+  }
 
   return (
     <section className="stack">

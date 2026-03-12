@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { HashRouter, useLocation } from 'react-router-dom';
 
-import { getDesktopContentRoot, isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
+import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
+import { DesktopContentRootEmptyState } from '@/platform/desktop/renderer/desktop-error-fallback';
+import { useDesktopContentRootQuery } from '@/platform/desktop/renderer/desktop-queries';
 import { parseAppRoute } from '@/shared/lib/app-routes';
 import { DesktopBrowserContent } from '@/widgets/content/desktop-browser-content';
 import { DesktopDocumentPage } from '@/widgets/document/desktop-document-page';
@@ -45,11 +47,12 @@ function DesktopRendererRouterBody() {
 }
 
 function DesktopHomePage() {
-  const [contentRoot, setContentRoot] = useState<string | null>(null);
+  const contentRootQuery = useDesktopContentRootQuery(true);
+  const contentRoot = contentRootQuery.data ?? null;
 
-  useEffect(() => {
-    void getDesktopContentRoot().then((nextRoot) => setContentRoot(nextRoot));
-  }, []);
+  if (!contentRootQuery.isLoading && !contentRoot) {
+    return <DesktopContentRootEmptyState />;
+  }
 
   return (
     <section className="stack">
