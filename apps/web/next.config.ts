@@ -3,7 +3,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   typedRoutes: false,
-  outputFileTracingRoot: path.resolve(process.cwd()),
+  outputFileTracingRoot: path.resolve(process.cwd(), '../..'),
 };
 
 export default nextConfig;
