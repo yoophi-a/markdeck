@@ -308,6 +308,37 @@ function buildSnippet(content, normalizedQuery) {
   return `${prefix}${compact.slice(start, end)}${suffix}`;
 }
 
+function toDesktopError(error) {
+  if (error?.message === 'Unsafe path outside of content root') {
+    return { code: 'UNSAFE_PATH', message: error.message };
+  }
+
+  if (error?.code === 'ENOENT') {
+    return { code: 'NOT_FOUND', message: '파일이나 폴더를 찾을 수 없습니다.' };
+  }
+
+  if (error?.code === 'EACCES' || error?.code === 'EPERM') {
+    return { code: 'PERMISSION_DENIED', message: '파일이나 폴더에 접근할 권한이 없습니다.' };
+  }
+
+  if (error instanceof TypeError) {
+    return { code: 'INVALID_INPUT', message: error.message };
+  }
+
+  return { code: 'UNKNOWN_ERROR', message: error?.message || '알 수 없는 desktop 오류가 발생했습니다.' };
+}
+
+function handleDesktopIpc(channel, handler) {
+  ipcMain.handle(channel, async (_event, ...args) => {
+    try {
+      const data = await handler(...args);
+      return { ok: true, data };
+    } catch (error) {
+      return { ok: false, error: toDesktopError(error) };
+    }
+  });
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1440,
@@ -399,8 +430,8 @@ async function loadApp() {
   await mainWindow.loadURL(`${url}/desktop#/`);
 }
 
-ipcMain.handle('markdeck:get-content-root', () => desktopConfig.contentRoot);
-ipcMain.handle('markdeck:choose-content-root', async () => {
+handleDesktopIpc('markdeck:get-content-root', () => desktopConfig.contentRoot);
+handleDesktopIpc('markdeck:choose-content-root', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
     defaultPath: desktopConfig.contentRoot || undefined,
@@ -414,12 +445,12 @@ ipcMain.handle('markdeck:choose-content-root', async () => {
   writeConfig({ ...desktopConfig, contentRoot });
   return contentRoot;
 });
-ipcMain.handle('markdeck:list-directory', (_event, relativePath = '') => listDirectory(relativePath));
-ipcMain.handle('markdeck:build-document-tree', (_event, relativePath = '', depth = 2) => buildDocumentTree(relativePath, depth));
-ipcMain.handle('markdeck:read-markdown-document', (_event, relativePath) => readMarkdownDocument(relativePath));
-ipcMain.handle('markdeck:collect-markdown-relative-paths', () => collectMarkdownRelativePaths());
-ipcMain.handle('markdeck:search-markdown-documents', (_event, query) => searchMarkdownDocuments(query));
-ipcMain.handle('markdeck:read-asset', (_event, relativePath) => readAsset(relativePath));
+handleDesktopIpc('markdeck:list-directory', (relativePath = '') => listDirectory(relativePath));
+handleDesktopIpc('markdeck:build-document-tree', (relativePath = '', depth = 2) => buildDocumentTree(relativePath, depth));
+handleDesktopIpc('markdeck:read-markdown-document', (relativePath) => readMarkdownDocument(relativePath));
+handleDesktopIpc('markdeck:collect-markdown-relative-paths', () => collectMarkdownRelativePaths());
+handleDesktopIpc('markdeck:search-markdown-documents', (query) => searchMarkdownDocuments(query));
+handleDesktopIpc('markdeck:read-asset', (relativePath) => readAsset(relativePath));
 
 app.whenReady().then(async () => {
   createWindow();
