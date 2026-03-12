@@ -92,22 +92,18 @@ MarkDeck은 일반적인 markdown 상대 링크를 기준으로 동작합니다.
 
 ```text
 markdeck/
-  app/
-    browse/[[...slug]]/page.tsx
-    docs/[...slug]/page.tsx
-    globals.css
-    layout.tsx
-    not-found.tsx
-    page.tsx
-  components/
-    BrowserList.tsx
-    MarkdownView.tsx
-  docs/
-    architecture.md
-  lib/
-    content.ts
-    format.ts
-  .env.example
+  apps/
+    web/
+      app/
+      src/
+      docs/
+      package.json
+    desktop/
+      package.json
+      main.js
+      preload.js
+  pnpm-workspace.yaml
+  tsconfig.base.json
   README.md
 ```
 
@@ -116,10 +112,10 @@ markdeck/
 ### 1) Configure environment
 
 ```bash
-cp .env.example .env.local
+cp apps/web/.env.example apps/web/.env.local
 ```
 
-Edit `.env.local`:
+Edit `apps/web/.env.local`:
 
 ```bash
 MARKDECK_CONTENT_ROOT=/Users/yoophi/openclaw-workspace
@@ -130,10 +126,10 @@ MARKDECK_IGNORE_PATTERNS=.git,node_modules
 ### 2) Install dependencies
 
 ```bash
-npm install
+npx pnpm install
 ```
 
-### 3) Run dev server
+### 3) Run web dev server
 
 ```bash
 npm run dev
@@ -150,6 +146,8 @@ npm run typecheck
 npm run build
 npm start
 ```
+
+웹 앱은 `apps/web`에 위치하고, 루트 스크립트는 workspace를 통해 `@markdeck/web`를 실행합니다.
 
 ## Environment variables
 
@@ -182,7 +180,7 @@ npm start
 
 상세 설계 문서는 아래에 있습니다.
 
-- [`docs/architecture.md`](./docs/architecture.md)
+- [`apps/web/docs/architecture.md`](./apps/web/docs/architecture.md)
 
 주요 설계 포인트:
 
