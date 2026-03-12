@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { FileText, Folder, Minus } from 'lucide-react';
 
-import type { BrowserEntry } from '@/shared/lib/content';
+import type { BrowserEntry } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { toBrowseHref, toDocHref } from '@/shared/lib/routes';
 

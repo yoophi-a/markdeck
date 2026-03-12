@@ -3,41 +3,7 @@ import 'server-only';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-import { toBrowseHref, toDocHref } from '@/shared/lib/routes';
-
-export type EntryType = 'directory' | 'markdown' | 'file';
-
-export interface BrowserEntry {
-  name: string;
-  relativePath: string;
-  type: EntryType;
-  size?: number;
-  updatedAt?: string;
-}
-
-export interface DocumentTreeNode {
-  name: string;
-  relativePath: string;
-  type: 'directory' | 'markdown';
-  children?: DocumentTreeNode[];
-}
-
-export interface MarkdownDocument {
-  absolutePath: string;
-  relativePath: string;
-  content: string;
-  title: string;
-  size: number;
-  updatedAt: string;
-}
-
-export interface SearchResult {
-  relativePath: string;
-  title: string;
-  snippet: string;
-  size: number;
-  updatedAt: string;
-}
+import type { BrowserEntry, DocumentTreeNode, MarkdownDocument, SearchResult } from '@/shared/lib/content-types';
 
 const DEFAULT_ROOT = process.cwd();
 const CONTENT_ROOT = path.resolve(process.env.MARKDECK_CONTENT_ROOT ?? DEFAULT_ROOT);
@@ -296,18 +262,3 @@ function extractTitle(relativePath: string, content: string) {
   return heading || path.basename(relativePath, '.md');
 }
 
-export function resolveMarkdownLink(currentRelativePath: string, href: string) {
-  if (!href || href.startsWith('http://') || href.startsWith('https://') || href.startsWith('#')) {
-    return href;
-  }
-
-  const currentDirectory = path.posix.dirname(`/${currentRelativePath}`);
-  const resolvedPath = path.posix.normalize(path.posix.join(currentDirectory, href));
-  const cleanPath = resolvedPath.replace(/^\//, '');
-
-  if (href.endsWith('.md') || cleanPath.endsWith('.md')) {
-    return toDocHref(cleanPath);
-  }
-
-  return toBrowseHref(cleanPath);
-}

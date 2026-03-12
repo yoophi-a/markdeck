@@ -58,6 +58,22 @@ Replace server-driven document reads with IPC/data APIs, and keep the renderer a
 2. **Next**: move content root selection, file reads, directory traversal, and search indexing into Electron main.
 3. **Later**: evaluate whether the renderer can become fully serverless/hybrid without a Next server.
 
+## Current status (2026-03-12)
+
+The desktop path has now started this migration:
+
+- content root selection/persistence lives in Electron main
+- desktop browse refresh can load directory entries through Electron IPC
+- desktop document refresh can load markdown content, sibling tree data, and known markdown paths through Electron IPC
+- web routes still keep the server-side implementation as the initial render/fallback path
+
+So the current model is intentionally **hybrid**:
+
+- initial page render: Next.js server path
+- desktop hydration/update path: Electron preload/API → main process filesystem access
+
+This keeps the current Electron-wraps-web structure, while starting to move the file exploration/read boundary into Electron main.
+
 ## Migration candidates for Electron main
 
 - content root persistence

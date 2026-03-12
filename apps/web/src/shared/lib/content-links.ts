@@ -1,5 +1,7 @@
-export function resolveAssetHref(currentRelativePath: string, href: string) {
-  if (!href || href.startsWith('http://') || href.startsWith('https://') || href.startsWith('data:') || href.startsWith('#')) {
+import { toBrowseHref, toDocHref } from '@/shared/lib/routes';
+
+export function resolveMarkdownLink(currentRelativePath: string, href: string) {
+  if (!href || href.startsWith('http://') || href.startsWith('https://') || href.startsWith('#')) {
     return href;
   }
 
@@ -7,19 +9,11 @@ export function resolveAssetHref(currentRelativePath: string, href: string) {
   const resolvedPath = normalizePath(`${currentDirectory}/${href}`);
   const cleanPath = resolvedPath.replace(/^\//, '');
 
-  return `/assets/${encodePath(cleanPath)}`;
-}
+  if (href.endsWith('.md') || cleanPath.endsWith('.md')) {
+    return toDocHref(cleanPath);
+  }
 
-function encodePath(relativePath: string) {
-  return relativePath
-    .split('/')
-    .filter(Boolean)
-    .map((segment) => encodeURIComponent(segment))
-    .join('/');
-}
-
-export function isImageAsset(href: string) {
-  return /\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(href);
+  return toBrowseHref(cleanPath);
 }
 
 function dirname(value: string) {

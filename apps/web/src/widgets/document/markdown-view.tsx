@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import { resolveAssetHref, isImageAsset } from '@/shared/lib/assets';
-import { resolveMarkdownLink } from '@/shared/lib/content';
+import { resolveMarkdownLink } from '@/shared/lib/content-links';
 import { createSlugger, extractCodeText } from '@/shared/lib/markdown';
 import { CodeBlock } from '@/shared/ui/code-block';
 import { MarkdownImage } from '@/shared/ui/markdown-image';

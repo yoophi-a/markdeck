@@ -1,5 +1,3 @@
-import path from 'node:path';
-
 import { toDocHref } from '@/shared/lib/routes';
 
 export interface HeadingItem {
@@ -112,15 +110,15 @@ export function resolveWikiLinkPath(currentRelativePath: string, rawTarget: stri
     return currentRelativePath;
   }
 
-  const currentDirectory = path.posix.dirname(`/${currentRelativePath}`);
-  const candidateBase = path.posix.normalize(path.posix.join(currentDirectory, normalizedTarget)).replace(/^\//, '');
+  const currentDirectory = dirname(`/${currentRelativePath}`);
+  const candidateBase = normalizePath(`${currentDirectory}/${normalizedTarget}`).replace(/^\//, '');
   const candidates = new Set<string>();
 
   candidates.add(candidateBase);
   if (!candidateBase.endsWith('.md')) {
     candidates.add(`${candidateBase}.md`);
-    candidates.add(path.posix.join(candidateBase, 'README.md'));
-    candidates.add(path.posix.join(candidateBase, 'index.md'));
+    candidates.add(`${candidateBase}/README.md`);
+    candidates.add(`${candidateBase}/index.md`);
   }
 
   const normalizedKnown = new Set(knownDocuments.map((document) => document.replace(/\\/g, '/')));
@@ -131,8 +129,8 @@ export function resolveWikiLinkPath(currentRelativePath: string, rawTarget: stri
     }
   }
 
-  const targetName = path.posix.basename(candidateBase, '.md').toLowerCase();
-  const fuzzyMatches = knownDocuments.filter((document) => path.posix.basename(document, '.md').toLowerCase() === targetName);
+  const targetName = basename(candidateBase, '.md').toLowerCase();
+  const fuzzyMatches = knownDocuments.filter((document) => basename(document, '.md').toLowerCase() === targetName);
 
   if (fuzzyMatches.length === 1) {
     return fuzzyMatches[0];
@@ -166,7 +164,7 @@ function formatWikiLinkLabel(rawTarget: string) {
   const { documentPath, section } = parseWikiLinkTarget(rawTarget);
 
   if (documentPath) {
-    return path.posix.basename(documentPath, '.md');
+    return basename(documentPath, '.md');
   }
 
   if (section) {
@@ -186,4 +184,42 @@ function stripMarkdownInline(value: string) {
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
     .replace(/<[^>]+>/g, '')
     .trim();
+}
+
+function normalizePath(value: string) {
+  const segments = value.split('/');
+  const stack = [];
+
+  for (const segment of segments) {
+    if (!segment || segment === '.') {
+      continue;
+    }
+
+    if (segment === '..') {
+      stack.pop();
+      continue;
+    }
+
+    stack.push(segment);
+  }
+
+  return `/${stack.join('/')}`;
+}
+
+function dirname(value: string) {
+  const normalized = normalizePath(value);
+  const parts = normalized.split('/').filter(Boolean);
+  parts.pop();
+  return `/${parts.join('/')}`;
+}
+
+function basename(value: string, extension = '') {
+  const normalized = value.replace(/\\/g, '/').replace(/\/+$/, '');
+  const name = normalized.split('/').filter(Boolean).pop() ?? '';
+
+  if (extension && name.toLowerCase().endsWith(extension.toLowerCase())) {
+    return name.slice(0, -extension.length);
+  }
+
+  return name;
 }

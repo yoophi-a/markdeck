@@ -5,7 +5,7 @@ import type { Route } from 'next';
 import { ChevronDown, ChevronRight, FileText, FolderTree, LoaderCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import type { DocumentTreeNode } from '@/shared/lib/content';
+import type { DocumentTreeNode } from '@/shared/lib/content-types';
 import { toBrowseHref, toDocHref } from '@/shared/lib/routes';
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
@@ -52,13 +52,18 @@ export function DocumentTree({ title = '파일과 폴더', nodes, activeRelative
       setLoadingPaths((current) => new Set(current).add(relativePath));
 
       try {
-        const response = await fetch(`/api/tree?path=${encodeURIComponent(relativePath)}`);
-        if (!response.ok) {
-          throw new Error('Failed to fetch tree nodes');
-        }
+        if (window.markdeckDesktop?.buildDocumentTree) {
+          const data = await window.markdeckDesktop.buildDocumentTree(relativePath, 1);
+          setTreeNodes((current) => updateNodeChildren(current, relativePath, data ?? []));
+        } else {
+          const response = await fetch(`/api/tree?path=${encodeURIComponent(relativePath)}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch tree nodes');
+          }
 
-        const data = (await response.json()) as { nodes?: DocumentTreeNode[] };
-        setTreeNodes((current) => updateNodeChildren(current, relativePath, data.nodes ?? []));
+          const data = (await response.json()) as { nodes?: DocumentTreeNode[] };
+          setTreeNodes((current) => updateNodeChildren(current, relativePath, data.nodes ?? []));
+        }
       } catch {
         setTreeNodes((current) => updateNodeChildren(current, relativePath, []));
       } finally {
