@@ -33,6 +33,9 @@ MarkDeck은 이런 markdown 자산을 **파일 브라우징 + 문서 렌더링 +
 - markdown rendering
 - mermaid code block rendering
 - full-text search by file path / title / body
+- recent documents list (browser localStorage)
+- heading-based table of contents (TOC)
+- Obsidian-style WikiLink support (`[[Note]]`, `[[path/to/note]]`)
 - local relative image rendering and attachment links
 - relative markdown link navigation
 - hidden file filtering
@@ -54,6 +57,8 @@ MarkDeck은 이런 markdown 자산을 **파일 브라우징 + 문서 렌더링 +
   - 파일명 / 제목 / 본문 기반 markdown 검색
 - `/docs/<path-to-file.md>`
   - markdown 문서 렌더링
+  - 최근 본 문서 표시
+  - heading 기반 TOC 표시
 
 ## Link behavior
 
@@ -70,6 +75,9 @@ MarkDeck은 일반적인 markdown 상대 링크를 기준으로 동작합니다.
 - `./files/spec.pdf` → 현재 문서 기준 첨부 링크로 열기
 - `https://example.com` → 외부 링크로 유지
 - `#section` → 현재 문서 내부 anchor 유지
+- `[[WikiLink]]` → 같은 workspace 안의 markdown 문서 링크로 해석
+- `[[folder/note]]` → 경로 기반 wiki link 지원
+- 찾지 못한 WikiLink → plain text로 렌더링
 - ```` ```mermaid ```` 코드블록 → 브라우저에서 다이어그램으로 렌더링
 
 ## Tech stack

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 
-import { toBrowseHref } from '@/lib/content';
+import { toBrowseHref } from '@/lib/routes';
 
 interface BreadcrumbsProps {
   segments?: string[];

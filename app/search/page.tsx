@@ -2,7 +2,8 @@ import Link from 'next/link';
 import type { Route } from 'next';
 
 import { SearchForm } from '@/components/SearchForm';
-import { searchMarkdownDocuments, toDocHref } from '@/lib/content';
+import { searchMarkdownDocuments } from '@/lib/content';
+import { toDocHref } from '@/lib/routes';
 import { formatDateTime, formatFileSize } from '@/lib/format';
 
 export default async function SearchPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {

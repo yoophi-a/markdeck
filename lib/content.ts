@@ -1,6 +1,8 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
+import { toBrowseHref, toDocHref } from '@/lib/routes';
+
 export type EntryType = 'directory' | 'markdown' | 'file';
 
 export interface BrowserEntry {
@@ -154,6 +156,13 @@ export async function readMarkdownDocument(segments: string[]): Promise<Markdown
   };
 }
 
+export async function collectMarkdownRelativePaths(): Promise<string[]> {
+  const markdownFiles = await collectMarkdownFiles(CONTENT_ROOT);
+  return markdownFiles
+    .map((filePath) => path.relative(CONTENT_ROOT, filePath).split(path.sep).join('/'))
+    .sort((a, b) => a.localeCompare(b));
+}
+
 export async function searchMarkdownDocuments(query: string): Promise<SearchResult[]> {
   const normalizedQuery = query.trim().toLowerCase();
 
@@ -230,22 +239,6 @@ function buildSnippet(content: string, normalizedQuery: string) {
 function extractTitle(relativePath: string, content: string) {
   const heading = content.match(/^#\s+(.+)$/m)?.[1]?.trim();
   return heading || path.basename(relativePath, '.md');
-}
-
-export function toDocHref(relativePath: string) {
-  return `/docs/${encodePath(relativePath)}`;
-}
-
-export function toBrowseHref(relativePath = '') {
-  return relativePath ? `/browse/${encodePath(relativePath)}` : '/browse';
-}
-
-function encodePath(relativePath: string) {
-  return relativePath
-    .split('/')
-    .filter(Boolean)
-    .map((segment) => encodeURIComponent(segment))
-    .join('/');
 }
 
 export function resolveMarkdownLink(currentRelativePath: string, href: string) {

@@ -2,8 +2,8 @@ import Link from 'next/link';
 import type { Route } from 'next';
 
 import type { BrowserEntry } from '@/lib/content';
-import { toBrowseHref, toDocHref } from '@/lib/content';
 import { formatDateTime, formatFileSize } from '@/lib/format';
+import { toBrowseHref, toDocHref } from '@/lib/routes';
 
 interface BrowserListProps {
   entries: BrowserEntry[];

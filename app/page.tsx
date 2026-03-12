@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 
-import { getContentRoot, getIgnorePatterns, toBrowseHref } from '@/lib/content';
+import { RecentDocuments } from '@/components/RecentDocuments';
+import { getContentRoot, getIgnorePatterns } from '@/lib/content';
+import { toBrowseHref } from '@/lib/routes';
 
 export default function HomePage() {
   return (
@@ -20,6 +22,9 @@ export default function HomePage() {
           <ul>
             <li>파일/폴더 브라우징</li>
             <li>Markdown 렌더링</li>
+            <li>최근 본 문서 목록</li>
+            <li>문서 heading 기반 목차</li>
+            <li>Obsidian-style WikiLink 지원</li>
             <li>문서 간 상대 링크 이동</li>
             <li>ignore pattern 기반 숨김 처리</li>
             <li>full-text search</li>
@@ -48,6 +53,8 @@ export default function HomePage() {
           </div>
         </article>
       </div>
+
+      <RecentDocuments />
     </section>
   );
 }
