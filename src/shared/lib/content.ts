@@ -39,7 +39,7 @@ export interface SearchResult {
   updatedAt: string;
 }
 
-const DEFAULT_ROOT = path.resolve(process.cwd(), '..', '..');
+const DEFAULT_ROOT = process.cwd();
 const CONTENT_ROOT = path.resolve(process.env.MARKDECK_CONTENT_ROOT ?? DEFAULT_ROOT);
 const DEFAULT_IGNORE_PATTERNS = ['.git', 'node_modules'];
 const IGNORE_PATTERNS = parseIgnorePatterns(process.env.MARKDECK_IGNORE_PATTERNS);

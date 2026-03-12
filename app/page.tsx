@@ -39,6 +39,7 @@ export default function HomePage() {
             <strong>content root</strong>
           </p>
           <code>{getContentRoot()}</code>
+          <p className="muted">환경변수 `MARKDECK_CONTENT_ROOT`를 지정하지 않으면 현재 앱 작업 디렉터리를 기준으로 동작합니다.</p>
           <p>
             <strong>ignore patterns</strong>
           </p>
