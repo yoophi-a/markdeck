@@ -65,25 +65,48 @@ function waitForWeb(url, timeoutMs = 30000) {
   });
 }
 
+function createWebEnv() {
+  return {
+    ...process.env,
+    PORT: String(WEB_PORT),
+    HOSTNAME: '127.0.0.1',
+    MARKDECK_CONTENT_ROOT: desktopConfig.contentRoot || process.env.MARKDECK_CONTENT_ROOT || process.cwd(),
+  };
+}
+
+function getStandaloneEntrypoint() {
+  return path.join(process.resourcesPath, 'web', 'standalone', 'apps', 'web', 'server.js');
+}
+
+function getStandaloneCwd() {
+  return path.dirname(getStandaloneEntrypoint());
+}
+
+function spawnWebProcess(command, args, cwd) {
+  webProcess = spawn(command, args, {
+    cwd,
+    env: createWebEnv(),
+    stdio: 'inherit',
+  });
+
+  webProcess.on('exit', () => {
+    webProcess = null;
+  });
+}
+
 async function ensureWebApp() {
-  if (!isDev) {
-    return WEB_URL;
-  }
-
   if (!webProcess) {
-    webProcess = spawn('npm', ['run', 'dev', '--', '--port', String(WEB_PORT)], {
-      cwd: path.resolve(__dirname, '../web'),
-      env: {
-        ...process.env,
-        PORT: String(WEB_PORT),
-        MARKDECK_CONTENT_ROOT: desktopConfig.contentRoot || process.env.MARKDECK_CONTENT_ROOT || process.cwd(),
-      },
-      stdio: 'inherit',
-    });
+    if (isDev) {
+      spawnWebProcess('npm', ['run', 'dev', '--', '--port', String(WEB_PORT)], path.resolve(__dirname, '../web'));
+    } else {
+      const entrypoint = getStandaloneEntrypoint();
 
-    webProcess.on('exit', () => {
-      webProcess = null;
-    });
+      if (!fs.existsSync(entrypoint)) {
+        throw new Error(`Standalone web bundle not found: ${entrypoint}`);
+      }
+
+      spawnWebProcess(process.execPath, [entrypoint], getStandaloneCwd());
+    }
   }
 
   await waitForWeb(WEB_URL);

@@ -157,6 +157,21 @@ npm run desktop:dev
 
 Electron desktop 앱은 개발 모드에서 `apps/web`의 Next.js 서버를 자동으로 띄운 뒤, 해당 URL을 로드합니다.
 
+### 6) Build and package desktop app
+
+```bash
+npm run desktop:build:web
+npm run desktop:pack
+# or
+npm run desktop:dist
+```
+
+- `desktop:build:web`: Next.js standalone production bundle 생성
+- `desktop:pack`: macOS `.app` unpacked 산출물 생성 (`release/desktop/mac-arm64/MarkDeck.app`)
+- `desktop:dist`: macOS zip 배포본 생성 시도
+
+현재 방향은 **Electron이 web app을 감싸는 구조를 유지**하면서, production에서는 bundled Next standalone server를 Electron이 직접 띄우는 방식입니다.
+
 ## Environment variables
 
 | Name | Required | Description |
