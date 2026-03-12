@@ -1,19 +1,14 @@
 'use client';
 
 import { Clock3 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 
+import { useRecentDocumentsQuery, useRecordRecentDocumentMutation, type RecentDocumentItem } from '@/platform/desktop/renderer/desktop-queries';
 import { formatDateTime } from '@/shared/lib/format';
 import { toDocHref } from '@/shared/lib/routes';
 import { AppLink } from '@/shared/ui/app-link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
 import { ScrollArea } from '@/shared/ui/scroll-area';
-
-interface RecentDocumentItem {
-  relativePath: string;
-  title: string;
-  viewedAt: string;
-}
 
 interface RecentDocumentsProps {
   currentDocument?: RecentDocumentItem;
@@ -21,35 +16,27 @@ interface RecentDocumentsProps {
   emptyMessage?: string;
 }
 
-const STORAGE_KEY = 'markdeck:recent-documents';
 const DEFAULT_LIMIT = 12;
 
 export function RecentDocuments({ currentDocument, limit = DEFAULT_LIMIT, emptyMessage = '아직 최근 본 문서가 없습니다.' }: RecentDocumentsProps) {
-  const [items, setItems] = useState<RecentDocumentItem[]>([]);
+  const recentDocumentsQuery = useRecentDocumentsQuery(true);
+  const { mutate: recordRecentDocument } = useRecordRecentDocumentMutation(limit);
+  const items = recentDocumentsQuery.data ?? [];
 
   useEffect(() => {
-    const nextItems = readRecentDocuments();
-
     if (!currentDocument) {
-      setItems(nextItems.slice(0, limit));
       return;
     }
 
-    const mergedItems = [
-      {
-        ...currentDocument,
-        viewedAt: new Date().toISOString(),
-      },
-      ...nextItems.filter((item) => item.relativePath !== currentDocument.relativePath),
-    ].slice(0, limit);
-
-    writeRecentDocuments(mergedItems);
-    setItems(mergedItems);
-  }, [currentDocument, limit]);
+    recordRecentDocument({
+      relativePath: currentDocument.relativePath,
+      title: currentDocument.title,
+    });
+  }, [currentDocument, recordRecentDocument]);
 
   const visibleItems = useMemo(() => {
     if (!currentDocument) {
-      return items;
+      return items.slice(0, limit);
     }
 
     return items.filter((item) => item.relativePath !== currentDocument.relativePath).slice(0, limit);
@@ -89,36 +76,4 @@ export function RecentDocuments({ currentDocument, limit = DEFAULT_LIMIT, emptyM
       </CardContent>
     </Card>
   );
-}
-
-function readRecentDocuments(): RecentDocumentItem[] {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  try {
-    const rawValue = window.localStorage.getItem(STORAGE_KEY);
-    if (!rawValue) {
-      return [];
-    }
-
-    const parsed = JSON.parse(rawValue) as RecentDocumentItem[];
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed
-      .filter((item): item is RecentDocumentItem => Boolean(item?.relativePath && item?.title && item?.viewedAt))
-      .sort((a, b) => new Date(b.viewedAt).getTime() - new Date(a.viewedAt).getTime());
-  } catch {
-    return [];
-  }
-}
-
-function writeRecentDocuments(items: RecentDocumentItem[]) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
 }
