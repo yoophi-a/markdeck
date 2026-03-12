@@ -3,6 +3,7 @@
 import { FolderOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
+import { chooseDesktopContentRoot, getDesktopContentRoot, isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
 import { Button } from '@/shared/ui/button';
 
 export function ContentRootSelector() {
@@ -10,12 +11,12 @@ export function ContentRootSelector() {
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    if (!window.markdeckDesktop) {
+    if (!isDesktopRenderer()) {
       return;
     }
 
     setIsDesktop(true);
-    void window.markdeckDesktop.getContentRoot().then((nextRoot) => setContentRoot(nextRoot));
+    void getDesktopContentRoot().then((nextRoot) => setContentRoot(nextRoot));
   }, []);
 
   if (!isDesktop) {
@@ -23,7 +24,7 @@ export function ContentRootSelector() {
   }
 
   async function handleChooseRoot() {
-    const nextRoot = await window.markdeckDesktop?.chooseContentRoot();
+    const nextRoot = await chooseDesktopContentRoot();
     if (nextRoot) {
       setContentRoot(nextRoot);
     }

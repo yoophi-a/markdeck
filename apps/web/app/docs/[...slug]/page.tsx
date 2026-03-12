@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import { buildDocumentTree, collectMarkdownRelativePaths, readMarkdownDocument } from '@/shared/lib/content';
+import { buildDocumentTree, collectMarkdownRelativePaths, readMarkdownDocument } from '@/platform/web/server/content-fs';
 import { joinSegments } from '@/shared/lib/format';
 import { DesktopDocumentPage } from '@/widgets/document/desktop-document-page';
 

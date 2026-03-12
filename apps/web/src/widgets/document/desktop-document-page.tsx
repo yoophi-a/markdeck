@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Route } from 'next';
 import { useEffect, useMemo, useState } from 'react';
 
+import { buildDesktopDocumentTree, collectDesktopMarkdownRelativePaths, readDesktopMarkdownDocument } from '@/platform/desktop/renderer/desktop-api';
 import type { DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/shared/lib/markdown';
@@ -34,26 +35,20 @@ export function DesktopDocumentPage({
   const [sidebarTree, setSidebarTree] = useState(initialSidebarTree);
 
   useEffect(() => {
-    if (!window.markdeckDesktop?.readMarkdownDocument) {
-      return;
-    }
-
     const relativePath = slug.join('/');
     const directoryPath = slug.slice(0, -1).join('/');
 
     void Promise.all([
-      window.markdeckDesktop.readMarkdownDocument(relativePath),
-      window.markdeckDesktop.collectMarkdownRelativePaths?.(),
-      window.markdeckDesktop.buildDocumentTree?.(directoryPath, 1),
+      readDesktopMarkdownDocument(relativePath),
+      collectDesktopMarkdownRelativePaths(),
+      buildDesktopDocumentTree(directoryPath, 1),
     ])
       .then(([nextDocument, nextKnownDocuments, nextSidebarTree]) => {
-        setDocument(nextDocument);
-        if (nextKnownDocuments) {
-          setKnownDocuments(nextKnownDocuments);
+        if (nextDocument) {
+          setDocument(nextDocument);
         }
-        if (nextSidebarTree) {
-          setSidebarTree(nextSidebarTree);
-        }
+        setKnownDocuments(nextKnownDocuments);
+        setSidebarTree(nextSidebarTree);
       })
       .catch(() => undefined);
   }, [slug]);

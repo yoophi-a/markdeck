@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import type { BrowserEntry } from '@/shared/lib/content-types';
+import { listDesktopDirectory } from '@/platform/desktop/renderer/desktop-api';
 import { prettyPath } from '@/shared/lib/format';
 import { BrowserList } from '@/widgets/content/browser-list';
 import { Breadcrumbs } from '@/widgets/navigation/breadcrumbs';
@@ -16,12 +17,7 @@ export function DesktopBrowserContent({ segments, initialEntries }: DesktopBrows
   const [entries, setEntries] = useState(initialEntries);
 
   useEffect(() => {
-    if (!window.markdeckDesktop?.listDirectory) {
-      return;
-    }
-
-    void window.markdeckDesktop
-      .listDirectory(segments.join('/'))
+    void listDesktopDirectory(segments.join('/'))
       .then((nextEntries) => setEntries(nextEntries))
       .catch(() => undefined);
   }, [segments]);

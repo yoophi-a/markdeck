@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 
-import { listDirectory } from '@/shared/lib/content';
+import { listDirectory } from '@/platform/web/server/content-fs';
 import { joinSegments } from '@/shared/lib/format';
 import { DesktopBrowserContent } from '@/widgets/content/desktop-browser-content';
 

@@ -5,6 +5,7 @@ import type { Route } from 'next';
 import { ChevronDown, ChevronRight, FileText, FolderTree, LoaderCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
+import { buildDesktopDocumentTree, isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
 import type { DocumentTreeNode } from '@/shared/lib/content-types';
 import { toBrowseHref, toDocHref } from '@/shared/lib/routes';
 import { Button } from '@/shared/ui/button';
@@ -52,8 +53,8 @@ export function DocumentTree({ title = '파일과 폴더', nodes, activeRelative
       setLoadingPaths((current) => new Set(current).add(relativePath));
 
       try {
-        if (window.markdeckDesktop?.buildDocumentTree) {
-          const data = await window.markdeckDesktop.buildDocumentTree(relativePath, 1);
+        if (isDesktopRenderer()) {
+          const data = await buildDesktopDocumentTree(relativePath, 1);
           setTreeNodes((current) => updateNodeChildren(current, relativePath, data ?? []));
         } else {
           const response = await fetch(`/api/tree?path=${encodeURIComponent(relativePath)}`);
