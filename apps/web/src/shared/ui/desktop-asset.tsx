@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
-import { getDesktopAsset } from '@/platform/desktop/renderer/desktop-content';
+import { useDesktopAssetQuery } from '@/platform/desktop/renderer/desktop-queries';
 
 interface DesktopAssetLinkProps {
   relativePath: string;
@@ -35,36 +35,24 @@ export function DesktopAssetImage({ relativePath, fallbackSrc, alt }: DesktopAss
 
 function useDesktopAssetObjectUrl(relativePath: string) {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
-  const shouldUseDesktopApi = useMemo(() => isDesktopRenderer(), []);
+  const shouldUseDesktopApi = isDesktopRenderer();
+  const assetQuery = useDesktopAssetQuery(relativePath, shouldUseDesktopApi);
 
   useEffect(() => {
-    if (!shouldUseDesktopApi) {
+    if (!assetQuery.data) {
       return;
     }
 
-    let active = true;
-    let nextObjectUrl: string | null = null;
-
-    void getDesktopAsset(relativePath)
-      .then((asset) => {
-        if (!active || !asset) {
-          return;
-        }
-
-        const binary = atob(asset.dataBase64);
-        const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-        nextObjectUrl = URL.createObjectURL(new Blob([bytes], { type: asset.contentType }));
-        setObjectUrl(nextObjectUrl);
-      })
-      .catch(() => undefined);
+    const binary = atob(assetQuery.data.dataBase64);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const nextObjectUrl = URL.createObjectURL(new Blob([bytes], { type: assetQuery.data.contentType }));
+    setObjectUrl(nextObjectUrl);
 
     return () => {
-      active = false;
-      if (nextObjectUrl) {
-        URL.revokeObjectURL(nextObjectUrl);
-      }
+      URL.revokeObjectURL(nextObjectUrl);
+      setObjectUrl(null);
     };
-  }, [relativePath, shouldUseDesktopApi]);
+  }, [assetQuery.data]);
 
   return objectUrl;
 }

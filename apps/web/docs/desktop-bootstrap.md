@@ -73,5 +73,6 @@ web 환경은 기존 서버 경로를 유지한다.
 
 1. desktop에서 새 데이터 기능은 가능하면 main IPC부터 추가한다.
 2. renderer UI는 desktop data access layer를 통해서만 desktop 데이터를 읽는다.
-3. Next server path는 web compatibility 용도로만 유지한다.
-4. desktop 기능 구현 시 "server route를 먼저 만들고 desktop에서 재사용" 패턴을 더 늘리지 않는다.
+3. desktop의 비동기 조회 상태는 React Query query key 기준으로 정리해 loading/error/cache 재사용을 맞춘다.
+4. Next server path는 web compatibility 용도로만 유지한다.
+5. desktop 기능 구현 시 "server route를 먼저 만들고 desktop에서 재사용" 패턴을 더 늘리지 않는다.

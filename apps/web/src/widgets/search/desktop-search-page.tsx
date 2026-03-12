@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { SearchForm } from '@/features/search/ui/search-form';
 import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
-import { searchDesktopDocuments } from '@/platform/desktop/renderer/desktop-content';
+import { useDesktopSearchQuery } from '@/platform/desktop/renderer/desktop-queries';
 import type { SearchResult } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { toDocHref } from '@/shared/lib/routes';
@@ -17,10 +17,12 @@ interface DesktopSearchPageProps {
 
 export function DesktopSearchPage({ initialQuery, initialResults }: DesktopSearchPageProps) {
   const [query, setQuery] = useState(initialQuery);
-  const [results, setResults] = useState(initialResults);
+  const desktopRenderer = isDesktopRenderer();
+  const resultsQuery = useDesktopSearchQuery(query, desktopRenderer);
+  const results = desktopRenderer ? resultsQuery.data ?? [] : initialResults;
 
   useEffect(() => {
-    if (isDesktopRenderer()) {
+    if (desktopRenderer) {
       const syncFromHash = () => {
         const hash = window.location.hash.replace(/^#/, '') || '/';
         const [, search = ''] = hash.split('?');
@@ -33,18 +35,7 @@ export function DesktopSearchPage({ initialQuery, initialResults }: DesktopSearc
     }
 
     setQuery(initialQuery);
-  }, [initialQuery]);
-
-  useEffect(() => {
-    if (!query) {
-      setResults([]);
-      return;
-    }
-
-    void searchDesktopDocuments(query)
-      .then((nextResults) => setResults(nextResults))
-      .catch(() => undefined);
-  }, [query]);
+  }, [desktopRenderer, initialQuery]);
 
   return (
     <section className="stack">
@@ -60,7 +51,9 @@ export function DesktopSearchPage({ initialQuery, initialResults }: DesktopSearc
           <p className="muted">
             검색어 <strong>{query}</strong> 결과 {results.length}건
           </p>
-          {results.length > 0 ? (
+          {desktopRenderer && resultsQuery.isLoading ? (
+            <p className="muted">검색 중…</p>
+          ) : results.length > 0 ? (
             <ul className="search-results">
               {results.map((result) => (
                 <li key={result.relativePath} className="search-result-item">

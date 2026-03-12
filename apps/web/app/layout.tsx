@@ -2,6 +2,7 @@ import './globals.css';
 
 import { Geist } from 'next/font/google';
 
+import { DesktopQueryProvider } from '@/platform/desktop/renderer/desktop-query-provider';
 import { cn } from '@/shared/lib/utils';
 import { AppHeader } from '@/widgets/layout/app-header';
 
@@ -11,10 +12,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="ko" data-theme="dark" className={cn('font-sans', geist.variable)}>
       <body>
-        <div className="shell">
-          <AppHeader />
-          <main className="content">{children}</main>
-        </div>
+        <DesktopQueryProvider>
+          <div className="shell">
+            <AppHeader />
+            <main className="content">{children}</main>
+          </div>
+        </DesktopQueryProvider>
       </body>
     </html>
   );

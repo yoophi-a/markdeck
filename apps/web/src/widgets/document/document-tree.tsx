@@ -3,7 +3,8 @@
 import { ChevronDown, ChevronRight, FileText, FolderTree, LoaderCircle } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import { buildDesktopDocumentTree, isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
+import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
+import { useDesktopDocumentTreeQuery } from '@/platform/desktop/renderer/desktop-queries';
 import type { DocumentTreeNode } from '@/shared/lib/content-types';
 import { toBrowseHref, toDocHref } from '@/shared/lib/routes';
 import { AppLink } from '@/shared/ui/app-link';
@@ -19,14 +20,25 @@ interface DocumentTreeProps {
 
 export function DocumentTree({ title = '파일과 폴더', nodes, activeRelativePath }: DocumentTreeProps) {
   const [treeNodes, setTreeNodes] = useState(nodes);
+  const [queryPath, setQueryPath] = useState<string | null>(null);
   const defaultExpandedPaths = useMemo(() => collectExpandedPaths(nodes, activeRelativePath), [nodes, activeRelativePath]);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set(defaultExpandedPaths));
-  const [loadingPaths, setLoadingPaths] = useState<Set<string>>(new Set());
+  const desktopTreeQuery = useDesktopDocumentTreeQuery(queryPath ?? '', 1, Boolean(queryPath));
 
   useEffect(() => {
     setTreeNodes(nodes);
     setExpandedPaths(new Set(defaultExpandedPaths));
   }, [defaultExpandedPaths, nodes]);
+
+  useEffect(() => {
+    if (!queryPath || !desktopTreeQuery.data) {
+      return;
+    }
+
+    setTreeNodes((current) => updateNodeChildren(current, queryPath, desktopTreeQuery.data ?? []));
+    setExpandedPaths((current) => new Set(current).add(queryPath));
+    setQueryPath(null);
+  }, [desktopTreeQuery.data, queryPath]);
 
   if (treeNodes.length === 0) {
     return null;
@@ -49,29 +61,21 @@ export function DocumentTree({ title = '파일과 폴더', nodes, activeRelative
     }
 
     if (node.children === undefined) {
-      setLoadingPaths((current) => new Set(current).add(relativePath));
+      if (isDesktopRenderer()) {
+        setQueryPath(relativePath);
+        return;
+      }
 
       try {
-        if (isDesktopRenderer()) {
-          const data = await buildDesktopDocumentTree(relativePath, 1);
-          setTreeNodes((current) => updateNodeChildren(current, relativePath, data ?? []));
-        } else {
-          const response = await fetch(`/api/tree?path=${encodeURIComponent(relativePath)}`);
-          if (!response.ok) {
-            throw new Error('Failed to fetch tree nodes');
-          }
-
-          const data = (await response.json()) as { nodes?: DocumentTreeNode[] };
-          setTreeNodes((current) => updateNodeChildren(current, relativePath, data.nodes ?? []));
+        const response = await fetch(`/api/tree?path=${encodeURIComponent(relativePath)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch tree nodes');
         }
+
+        const data = (await response.json()) as { nodes?: DocumentTreeNode[] };
+        setTreeNodes((current) => updateNodeChildren(current, relativePath, data.nodes ?? []));
       } catch {
         setTreeNodes((current) => updateNodeChildren(current, relativePath, []));
-      } finally {
-        setLoadingPaths((current) => {
-          const next = new Set(current);
-          next.delete(relativePath);
-          return next;
-        });
       }
     }
 
@@ -91,7 +95,7 @@ export function DocumentTree({ title = '파일과 폴더', nodes, activeRelative
           <ScrollArea className="max-h-[70vh] pr-3">
             <ul className="document-tree-list">
               {treeNodes.map((node) => (
-                <TreeNode key={`${node.type}:${node.relativePath}`} node={node} activeRelativePath={activeRelativePath} depth={0} expandedPaths={expandedPaths} loadingPaths={loadingPaths} onToggle={handleToggle} />
+                <TreeNode key={`${node.type}:${node.relativePath}`} node={node} activeRelativePath={activeRelativePath} depth={0} expandedPaths={expandedPaths} loadingPaths={queryPath ? new Set([queryPath]) : new Set()} onToggle={handleToggle} />
               ))}
             </ul>
           </ScrollArea>

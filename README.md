@@ -172,7 +172,7 @@ npm run desktop:dist
 
 현재 방향은 **Electron이 web app을 감싸는 구조를 유지**하면서, production에서는 bundled Next standalone server를 Electron이 직접 띄우는 방식입니다.
 
-다만 desktop 아키텍처는 점진적으로 **main → IPC → renderer** 방향으로 옮기는 중입니다. search / browse / docs / asset read는 desktop에서 Electron main IPC를 우선 사용합니다. desktop renderer의 route state는 이제 React Router HashRouter 기반 client shell이 맡고, embedded web server는 bootstrap 및 web 호환성 용도로만 남아 있습니다.
+다만 desktop 아키텍처는 점진적으로 **main → IPC → renderer** 방향으로 옮기는 중입니다. search / browse / docs / asset read는 desktop에서 Electron main IPC를 우선 사용합니다. desktop renderer의 route state는 이제 React Router HashRouter 기반 client shell이 맡고, desktop 비동기 데이터 조회는 React Query(TanStack Query)로 정리하기 시작했습니다. embedded web server는 bootstrap 및 web 호환성 용도로만 남아 있습니다.
 
 자세한 메모: `apps/web/docs/desktop-bootstrap.md`
 

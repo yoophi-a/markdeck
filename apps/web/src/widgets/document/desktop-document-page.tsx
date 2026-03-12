@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 
-import { getDesktopDocumentPageData } from '@/platform/desktop/renderer/desktop-content';
+import { useDesktopDocumentPageQuery } from '@/platform/desktop/renderer/desktop-queries';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 import type { DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
@@ -26,41 +26,18 @@ interface DesktopDocumentPageProps {
 
 export function DesktopDocumentPage({ slug, initialDocument = null, initialKnownDocuments, initialSidebarTree }: DesktopDocumentPageProps) {
   const desktopRenderer = useDesktopRenderer();
-  const [document, setDocument] = useState<MarkdownDocument | null>(desktopRenderer ? null : initialDocument);
-  const [knownDocuments, setKnownDocuments] = useState(initialKnownDocuments);
-  const [sidebarTree, setSidebarTree] = useState(initialSidebarTree);
-
-  useEffect(() => {
-    if (!desktopRenderer) {
-      setDocument(initialDocument);
-      setKnownDocuments(initialKnownDocuments);
-      setSidebarTree(initialSidebarTree);
-      return;
-    }
-
-    setDocument(null);
-
-    const relativePath = slug.join('/');
-
-    void getDesktopDocumentPageData(relativePath)
-      .then(({ document: nextDocument, knownDocuments: nextKnownDocuments, sidebarTree: nextSidebarTree }) => {
-        setDocument(nextDocument);
-        setKnownDocuments(nextKnownDocuments);
-        setSidebarTree(nextSidebarTree);
-      })
-      .catch(() => {
-        setDocument(initialDocument);
-        setKnownDocuments(initialKnownDocuments);
-        setSidebarTree(initialSidebarTree);
-      });
-  }, [desktopRenderer, initialDocument, initialKnownDocuments, initialSidebarTree, slug]);
+  const relativePath = slug.join('/');
+  const documentPageQuery = useDesktopDocumentPageQuery(relativePath, desktopRenderer);
+  const document = desktopRenderer ? documentPageQuery.data?.document ?? null : initialDocument;
+  const knownDocuments = desktopRenderer ? documentPageQuery.data?.knownDocuments ?? [] : initialKnownDocuments;
+  const sidebarTree = desktopRenderer ? documentPageQuery.data?.sidebarTree ?? [] : initialSidebarTree;
 
   if (!document) {
     return (
       <section className="stack document-page">
         <div className="card document-header-card">
           <p className="eyebrow">Document</p>
-          <h1>문서 불러오는 중…</h1>
+          <h1>{desktopRenderer && documentPageQuery.isError ? '문서를 불러오지 못했습니다.' : '문서 불러오는 중…'}</h1>
           <Breadcrumbs segments={slug.slice(0, -1)} currentLabel={slug.at(-1)} />
         </div>
       </section>

@@ -1,8 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
-import { getDesktopBrowserEntries } from '@/platform/desktop/renderer/desktop-content';
+import { useDesktopDirectoryQuery } from '@/platform/desktop/renderer/desktop-queries';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 import type { BrowserEntry } from '@/shared/lib/content-types';
 import { prettyPath } from '@/shared/lib/format';
@@ -16,33 +14,22 @@ interface DesktopBrowserContentProps {
 
 export function DesktopBrowserContent({ segments, initialEntries }: DesktopBrowserContentProps) {
   const desktopRenderer = useDesktopRenderer();
-  const [entries, setEntries] = useState<BrowserEntry[] | null>(desktopRenderer ? null : initialEntries);
-
-  useEffect(() => {
-    if (!desktopRenderer) {
-      setEntries(initialEntries);
-      return;
-    }
-
-    setEntries(null);
-
-    void getDesktopBrowserEntries(segments.join('/'))
-      .then((nextEntries) => setEntries(nextEntries))
-      .catch(() => setEntries([]));
-  }, [desktopRenderer, initialEntries, segments]);
+  const relativePath = segments.join('/');
+  const entriesQuery = useDesktopDirectoryQuery(relativePath, desktopRenderer);
+  const entries = desktopRenderer ? entriesQuery.data : initialEntries;
 
   return (
     <section className="stack">
       <div className="card">
         <p className="eyebrow">Browse</p>
-        <h1>{prettyPath(segments.join('/'))}</h1>
+        <h1>{prettyPath(relativePath)}</h1>
         <Breadcrumbs segments={segments} />
       </div>
 
       <div className="card">
-        {entries === null ? (
+        {desktopRenderer && entriesQuery.isLoading ? (
           <p className="muted">불러오는 중…</p>
-        ) : entries.length > 0 ? (
+        ) : entries && entries.length > 0 ? (
           <BrowserList entries={entries} />
         ) : (
           <p className="muted">표시할 파일이 없다.</p>
