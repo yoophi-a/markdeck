@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import type { Route } from 'next';
 
-import { DesktopRendererRouter } from '@/platform/desktop/renderer/desktop-router';
 import { getContentRoot, getIgnorePatterns } from '@/shared/lib/content';
 import { toBrowseHref } from '@/shared/lib/routes';
 import { PinnedDocuments } from '@/widgets/document/pinned-documents';
@@ -9,9 +8,7 @@ import { RecentDocuments } from '@/widgets/document/recent-documents';
 
 export default function HomePage() {
   return (
-    <>
-      <DesktopRendererRouter />
-      <section className="stack web-home-page">
+    <section className="stack web-home-page">
         <div className="hero-card">
           <p className="eyebrow">Project</p>
           <h1>MarkDeck</h1>
@@ -61,7 +58,6 @@ export default function HomePage() {
 
         <PinnedDocuments />
         <RecentDocuments />
-      </section>
-    </>
+    </section>
   );
 }

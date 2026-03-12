@@ -19,7 +19,7 @@ export function createAppHref(pathname: string, search = '') {
 }
 
 export function getDesktopHashHref(pathname: string, search = '') {
-  return `/#${createAppHref(pathname, search)}`;
+  return `/desktop#${createAppHref(pathname, search)}`;
 }
 
 export function parseAppRoute(pathname: string, search = '') {

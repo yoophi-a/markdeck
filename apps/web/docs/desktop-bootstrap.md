@@ -54,8 +54,9 @@ web 환경은 기존 서버 경로를 유지한다.
 ### Phase B — renderer bootstrap 분리
 부분 적용.
 
-- desktop 전용 renderer entry를 HashRouter 기반 client shell로 분리했다.
-- Electron은 `/#/` 진입점을 로드하고, desktop renderer의 browse / docs / search route state는 client-side hash route가 담당한다.
+- desktop 전용 renderer entry를 `/desktop` page + HashRouter 기반 client shell로 분리했다.
+- Electron은 `/desktop#/` 진입점을 로드하고, desktop renderer의 browse / docs / search route state는 client-side hash route가 담당한다.
+- web 홈(`/`)은 web 전용 landing / Next route bootstrap으로 유지된다.
 - 문서 데이터는 기존처럼 Electron main IPC를 사용하고, embedded Next server는 bootstrap 및 web 호환성을 위해 유지한다.
 - Next App Router 기반 web route는 그대로 남겨 두어 web/desktop이 공존한다.
 
