@@ -9,6 +9,7 @@ import { cn } from '@/shared/lib/utils';
 import { buttonVariants } from '@/shared/ui/button';
 import { Separator } from '@/shared/ui/separator';
 import { ThemeToggle } from '@/features/theme/ui/theme-toggle';
+import { ContentRootSelector } from '@/widgets/layout/content-root-selector';
 
 const appTitle = process.env.MARKDECK_APP_TITLE ?? 'MarkDeck';
 
@@ -25,6 +26,7 @@ export function AppHeader() {
         <Suspense fallback={<div className="search-form-placeholder" />}>
           <SearchForm />
         </Suspense>
+        <ContentRootSelector />
         <Separator orientation="vertical" className="header-separator hidden h-8 md:block" />
         <nav className="nav">
           <Link href={'/browse' as Route} className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'nav-link')}>
