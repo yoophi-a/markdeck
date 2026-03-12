@@ -28,6 +28,7 @@ export default async function DocumentPage({ params }: { params: Promise<{ slug:
       resolveWikiLinkHref(document.relativePath, rawTarget, knownDocuments)
     );
     const headings = extractHeadings(content);
+    const stats = summarizeDocument(content, headings.length);
     const directoryPath = directorySegments.join('/');
 
     return (
@@ -40,6 +41,10 @@ export default async function DocumentPage({ params }: { params: Promise<{ slug:
           <div className="document-meta muted mono">
             <span>size: {formatFileSize(document.size)}</span>
             <span>updated: {formatDateTime(document.updatedAt)}</span>
+            <span>headings: {stats.headingCount}</span>
+            <span>links: {stats.linkCount}</span>
+            <span>images: {stats.imageCount}</span>
+            <span>read: {stats.readingMinutes} min</span>
           </div>
           <div className="actions document-actions">
             <Link href={toBrowseHref(directoryPath) as Route} className="button-link secondary">
@@ -81,4 +86,18 @@ export default async function DocumentPage({ params }: { params: Promise<{ slug:
   } catch {
     notFound();
   }
+}
+
+function summarizeDocument(content: string, headingCount: number) {
+  const compact = content.replace(/```[\s\S]*?```/g, ' ').replace(/`[^`]+`/g, ' ');
+  const wordCount = compact.trim().split(/\s+/).filter(Boolean).length;
+  const linkCount = [...content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)].length;
+  const imageCount = [...content.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].length;
+
+  return {
+    headingCount,
+    linkCount,
+    imageCount,
+    readingMinutes: Math.max(1, Math.ceil(wordCount / 220)),
+  };
 }
