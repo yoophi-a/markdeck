@@ -1,5 +1,11 @@
 export function joinSegments(params?: { slug?: string[] }) {
-  return params?.slug ?? [];
+  return (params?.slug ?? []).map((segment) => {
+    try {
+      return decodeURIComponent(segment);
+    } catch {
+      return segment;
+    }
+  });
 }
 
 export function prettyPath(relativePath: string) {
