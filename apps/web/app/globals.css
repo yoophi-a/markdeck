@@ -144,6 +144,37 @@ code {
   gap: 8px;
 }
 
+.desktop-root-selector-stack {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.desktop-root-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.desktop-root-selector-recent {
+  justify-content: space-between;
+}
+
+.desktop-root-recent-label,
+.desktop-root-recent-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.desktop-root-recent-button {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--list-bg);
+  color: var(--text);
+}
+
 .search-form-placeholder {
   min-width: 320px;
   min-height: 38px;
