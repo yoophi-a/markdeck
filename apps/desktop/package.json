@@ -10,7 +10,8 @@
     "start": "electron .",
     "build:web": "cd ../web && npx next build && node ../desktop/scripts/prepare-standalone.mjs",
     "pack": "npm run build:web && electron-builder --dir",
-    "dist": "npm run build:web && electron-builder --mac zip"
+    "dist": "npm run build:web && electron-builder --mac zip",
+    "release:mac": "npm run dist"
   },
   "devDependencies": {
     "electron": "^37.2.0",
@@ -43,7 +44,11 @@
         "dir",
         "zip"
       ],
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     }
   }
 }

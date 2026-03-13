@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,4 +19,5 @@ if (!fs.existsSync(rootNodeModulesDir)) {
 }
 
 fs.rmSync(appNodeModulesDir, { recursive: true, force: true });
-fs.cpSync(rootNodeModulesDir, appNodeModulesDir, { recursive: true, dereference: false });
+fs.mkdirSync(appNodeModulesDir, { recursive: true });
+execFileSync('rsync', ['-aL', '--delete', `${rootNodeModulesDir}/`, `${appNodeModulesDir}/`], { stdio: 'inherit' });
