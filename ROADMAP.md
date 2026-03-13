@@ -82,6 +82,15 @@ Potential additions:
 - unresolved / resolved states
 - reviewer identity model
 - compact review mode
+- selection/block level translate actions
+- translation-assisted review flow
+
+### Translation support direction
+Recommended staged approach:
+1. Add **Translate** actions to selection popovers and block toolbars
+2. Open Google Translate for quick external translation checks first
+3. Later add an in-app translation side panel / preview
+4. If needed, evaluate formal translation API integration for tighter workflow support
 
 ---
 
