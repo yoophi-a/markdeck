@@ -37,7 +37,7 @@ interface SelectionDraft {
   occurrence: number;
   prefix: string;
   suffix: string;
-  rect: { top: number; left: number; bottom: number; width: number };
+  rect: { top: number; left: number; right: number; bottom: number; width: number; height: number };
   range: Range;
 }
 
@@ -337,15 +337,18 @@ function resolveSelectionPopoverPosition(rect: SelectionDraft['rect']) {
     return null;
   }
 
-  const popoverWidth = Math.min(360, window.innerWidth - 48);
-  const horizontalPadding = 16;
-  const verticalGap = 8;
-  const estimatedPopoverHeight = 160;
+  const popoverWidth = Math.min(320, window.innerWidth - 32);
+  const horizontalPadding = 12;
+  const verticalGap = 10;
+  const estimatedPopoverHeight = 172;
   const viewportBottom = window.innerHeight;
-  const preferredLeft = rect.left + rect.width / 2 - popoverWidth / 2;
+  const viewportRight = window.innerWidth;
+  const selectionCenter = rect.left + rect.width / 2;
+  const preferredNearSelection = rect.left + Math.min(Math.max(rect.width * 0.35, 20), 72);
+  const preferredLeft = Math.min(preferredNearSelection, selectionCenter - popoverWidth / 2);
   const minLeft = horizontalPadding;
-  const maxLeft = window.innerWidth - popoverWidth - horizontalPadding;
-  const left = Math.min(Math.max(preferredLeft, minLeft), Math.max(minLeft, maxLeft));
+  const maxLeft = Math.max(minLeft, viewportRight - popoverWidth - horizontalPadding);
+  const left = Math.min(Math.max(preferredLeft, minLeft), maxLeft);
 
   const belowTop = rect.bottom + verticalGap;
   const aboveTop = rect.top - estimatedPopoverHeight - verticalGap;

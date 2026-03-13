@@ -23,7 +23,7 @@ interface SelectionDraft {
   occurrence: number;
   prefix: string;
   suffix: string;
-  rect: { top: number; left: number; bottom: number; width: number };
+  rect: { top: number; left: number; right: number; bottom: number; width: number; height: number };
   range: Range;
 }
 
@@ -157,8 +157,10 @@ export function MarkdownView({
       rect: {
         top: rect.top,
         left: rect.left,
+        right: rect.right,
         bottom: rect.bottom,
         width: rect.width,
+        height: rect.height,
       },
       range: range.cloneRange(),
     });
@@ -692,6 +694,8 @@ function cleanupAnnotationMarks(container: HTMLElement) {
       return;
     }
 
+    Array.from(mark.querySelectorAll('[data-annotation-accessory="true"]')).forEach((accessory) => accessory.remove());
+
     while (mark.firstChild) {
       parent.insertBefore(mark.firstChild, mark);
     }
@@ -746,6 +750,15 @@ function applyTextAnnotation(block: HTMLElement, annotationId: string, anchor: A
     range.surroundContents(mark);
   } catch {
     wrapRangeContents(range, mark);
+  }
+
+  if (kind === 'comment' && mark.textContent?.trim()) {
+    const icon = document.createElement('span');
+    icon.dataset.annotationAccessory = 'true';
+    icon.className = 'annotation-inline-comment-icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '💬';
+    mark.appendChild(icon);
   }
 }
 

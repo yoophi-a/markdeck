@@ -18,7 +18,7 @@ interface SelectionDraft {
   occurrence: number;
   prefix: string;
   suffix: string;
-  rect: { top: number; left: number; bottom: number; width: number };
+  rect: { top: number; left: number; right: number; bottom: number; width: number; height: number };
   range: Range;
 }
 
