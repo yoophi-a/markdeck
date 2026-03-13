@@ -1,4 +1,5 @@
 const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
@@ -35,6 +36,112 @@ let searchIndexCache = null;
 let searchResultsCache = new Map();
 let documentCache = new Map();
 let assetCache = new Map();
+let pendingLaunchTarget = null;
+
+function isMarkdownFilePath(filePath) {
+  return path.extname(filePath).toLowerCase() === '.md';
+}
+
+function toPosixRelativePath(filePath, rootPath) {
+  return path.relative(rootPath, filePath).split(path.sep).join('/');
+}
+
+function extractLaunchPathArg(argv = []) {
+  const values = Array.isArray(argv) ? argv.filter((value) => typeof value === 'string' && value.trim()) : [];
+
+  for (const value of values.slice(1)) {
+    if (value === '--') {
+      continue;
+    }
+
+    if (value.startsWith('-')) {
+      continue;
+    }
+
+    return value;
+  }
+
+  return null;
+}
+
+function resolveLaunchTargetFromArg(rawArg) {
+  if (!rawArg || typeof rawArg !== 'string' || !rawArg.trim()) {
+    return null;
+  }
+
+  const candidatePath = path.resolve(rawArg);
+
+  if (!fs.existsSync(candidatePath)) {
+    return null;
+  }
+
+  const stats = fs.statSync(candidatePath);
+
+  if (stats.isDirectory()) {
+    return {
+      contentRoot: candidatePath,
+      relativeDocumentPath: null,
+      sourcePath: candidatePath,
+      targetType: 'directory',
+    };
+  }
+
+  if (stats.isFile() && isMarkdownFilePath(candidatePath)) {
+    const contentRoot = path.dirname(candidatePath);
+    return {
+      contentRoot,
+      relativeDocumentPath: toPosixRelativePath(candidatePath, contentRoot),
+      sourcePath: candidatePath,
+      targetType: 'markdown-file',
+    };
+  }
+
+  return null;
+}
+
+function resolveLaunchTargetFromArgv(argv = process.argv) {
+  return resolveLaunchTargetFromArg(extractLaunchPathArg(argv));
+}
+
+function applyLaunchTarget(target) {
+  if (!target?.contentRoot) {
+    return false;
+  }
+
+  setContentRoot(target.contentRoot);
+
+  if (target.relativeDocumentPath) {
+    sendDesktopCommand('open-launch-target', {
+      contentRoot: target.contentRoot,
+      relativeDocumentPath: target.relativeDocumentPath,
+      sourcePath: target.sourcePath,
+      targetType: target.targetType,
+    });
+    return true;
+  }
+
+  sendDesktopCommand('go-browse');
+  return true;
+}
+
+function queueOrApplyLaunchTarget(target) {
+  if (!target) {
+    return false;
+  }
+
+  pendingLaunchTarget = target;
+
+  if (!mainWindow || mainWindow.isDestroyed() || !mainWindow.webContents || mainWindow.webContents.isLoading()) {
+    return false;
+  }
+
+  const didApply = applyLaunchTarget(target);
+  if (didApply) {
+    pendingLaunchTarget = null;
+  }
+
+  return didApply;
+}
 
 function readConfig() {
   try {
@@ -710,6 +817,13 @@ async function ensureWebApp() {
 async function loadApp() {
   const url = await ensureWebApp();
   await mainWindow.loadURL(`${url}/desktop#/`);
+
+  if (pendingLaunchTarget) {
+    const didApply = applyLaunchTarget(pendingLaunchTarget);
+    if (didApply) {
+      pendingLaunchTarget = null;
+    }
+  }
 }
 
 async function chooseContentRoot() {
@@ -914,40 +1028,51 @@ handleDesktopIpc('markdeck:get-search-status', () => getSearchStatus());
 handleDesktopIpc('markdeck:read-asset', (relativePath) => readAsset(relativePath));
 handleDesktopIpc('markdeck:execute-command', (command, payload = null) => executeDesktopCommand(command, payload));
 
-app.whenReady().then(async () => {
-  rebuildApplicationMenu();
-  restartContentWatcher();
-  createWindow();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  pendingLaunchTarget = resolveLaunchTargetFromArgv(process.argv);
 
-  try {
-    await loadApp();
-  } catch (error) {
-    console.error('Failed to load MarkDeck desktop app', error);
-  }
+  app.on('second-instance', (_event, argv) => {
+    focusMainWindow();
+    queueOrApplyLaunchTarget(resolveLaunchTargetFromArgv(argv));
+  });
 
-  app.on('activate', async () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
+  app.whenReady().then(async () => {
+    rebuildApplicationMenu();
+    restartContentWatcher();
+    createWindow();
 
-      try {
-        await loadApp();
-      } catch (error) {
-        console.error('Failed to load MarkDeck desktop app on activate', error);
+    try {
+      await loadApp();
+    } catch (error) {
+      console.error('Failed to load MarkDeck desktop app', error);
+    }
+
+    app.on('activate', async () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+
+        try {
+          await loadApp();
+        } catch (error) {
+          console.error('Failed to load MarkDeck desktop app on activate', error);
+        }
       }
+    });
+  });
+
+  app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+      app.quit();
     }
   });
-});
 
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+  app.on('before-quit', () => {
+    closeContentWatcher();
 
-app.on('before-quit', () => {
-  closeContentWatcher();
-
-  if (webProcess) {
-    webProcess.kill();
-  }
-});
+    if (webProcess) {
+      webProcess.kill();
+    }
+  });
+}
