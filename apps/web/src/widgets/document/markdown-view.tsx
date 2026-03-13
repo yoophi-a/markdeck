@@ -121,9 +121,9 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], o
       prefix: match.prefix,
       suffix: match.suffix,
       rect: {
-        top: rect.top + window.scrollY,
-        left: rect.left + window.scrollX,
-        bottom: rect.bottom + window.scrollY,
+        top: rect.top,
+        left: rect.left,
+        bottom: rect.bottom,
         width: rect.width,
       },
       range: range.cloneRange(),

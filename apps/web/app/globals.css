@@ -540,7 +540,7 @@ body.is-resizing-document-layout {
 }
 
 .annotation-selection-popover {
-  position: absolute;
+  position: fixed;
   z-index: 40;
   width: min(360px, calc(100vw - 48px));
   padding: 12px;

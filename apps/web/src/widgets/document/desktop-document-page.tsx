@@ -146,6 +146,20 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
 
   const selectionPopoverPosition = selectionDraft ? resolveSelectionPopoverPosition(selectionDraft.rect) : null;
 
+  useEffect(() => {
+    if (!selectionDraft) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      restoreSelectionRange(selectionDraft.range);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [selectionDraft]);
+
   const documentArticle = (
     <article className="card markdown-body document-card annotation-document-shell">
       <MarkdownView
@@ -360,17 +374,16 @@ function resolveSelectionPopoverPosition(rect: SelectionDraft['rect']) {
   const horizontalPadding = 16;
   const verticalGap = 8;
   const estimatedPopoverHeight = 160;
-  const viewportTop = window.scrollY;
-  const viewportBottom = window.scrollY + window.innerHeight;
+  const viewportBottom = window.innerHeight;
   const preferredLeft = rect.left + rect.width / 2 - popoverWidth / 2;
-  const minLeft = window.scrollX + horizontalPadding;
-  const maxLeft = window.scrollX + window.innerWidth - popoverWidth - horizontalPadding;
+  const minLeft = horizontalPadding;
+  const maxLeft = window.innerWidth - popoverWidth - horizontalPadding;
   const left = Math.min(Math.max(preferredLeft, minLeft), Math.max(minLeft, maxLeft));
 
   const belowTop = rect.bottom + verticalGap;
   const aboveTop = rect.top - estimatedPopoverHeight - verticalGap;
   const fitsBelow = belowTop + estimatedPopoverHeight <= viewportBottom - horizontalPadding;
-  const top = fitsBelow ? belowTop : Math.max(viewportTop + horizontalPadding, aboveTop);
+  const top = fitsBelow ? belowTop : Math.max(horizontalPadding, aboveTop);
 
   return {
     top,
