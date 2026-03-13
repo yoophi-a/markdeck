@@ -44,7 +44,7 @@ interface SelectionDraft {
   occurrence: number;
   prefix: string;
   suffix: string;
-  rect: { top: number; left: number; bottom: number };
+  rect: { top: number; left: number; bottom: number; width: number };
   range: Range;
 }
 
@@ -144,6 +144,8 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
     restoreSelectionRange(selectionDraft.range);
   };
 
+  const selectionPopoverPosition = selectionDraft ? resolveSelectionPopoverPosition(selectionDraft.rect) : null;
+
   const documentArticle = (
     <article className="card markdown-body document-card annotation-document-shell">
       <MarkdownView
@@ -158,10 +160,11 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
           setAnnotations((current) => toggleDeletionAnnotation(current, blockId, blockText));
         }}
       />
-      {selectionDraft ? (
+      {selectionDraft && selectionPopoverPosition ? (
         <div
           className="annotation-selection-popover"
-          style={{ top: `${selectionDraft.rect.bottom + 8}px`, left: `${selectionDraft.rect.left}px` }}
+          style={{ top: `${selectionPopoverPosition.top}px`, left: `${selectionPopoverPosition.left}px` }}
+          data-placement={selectionPopoverPosition.placement}
           onMouseDownCapture={(event) => {
             const target = event.target as HTMLElement;
             if (target.closest('textarea, input')) {
@@ -346,6 +349,34 @@ function restoreSelectionRange(range: Range) {
 
   selection.removeAllRanges();
   selection.addRange(range.cloneRange());
+}
+
+function resolveSelectionPopoverPosition(rect: SelectionDraft['rect']) {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  const popoverWidth = Math.min(360, window.innerWidth - 48);
+  const horizontalPadding = 16;
+  const verticalGap = 8;
+  const estimatedPopoverHeight = 160;
+  const viewportTop = window.scrollY;
+  const viewportBottom = window.scrollY + window.innerHeight;
+  const preferredLeft = rect.left + rect.width / 2 - popoverWidth / 2;
+  const minLeft = window.scrollX + horizontalPadding;
+  const maxLeft = window.scrollX + window.innerWidth - popoverWidth - horizontalPadding;
+  const left = Math.min(Math.max(preferredLeft, minLeft), Math.max(minLeft, maxLeft));
+
+  const belowTop = rect.bottom + verticalGap;
+  const aboveTop = rect.top - estimatedPopoverHeight - verticalGap;
+  const fitsBelow = belowTop + estimatedPopoverHeight <= viewportBottom - horizontalPadding;
+  const top = fitsBelow ? belowTop : Math.max(viewportTop + horizontalPadding, aboveTop);
+
+  return {
+    top,
+    left,
+    placement: fitsBelow ? 'bottom' as const : 'top' as const,
+  };
 }
 
 function toggleDeletionAnnotation(current: DocumentAnnotation[], blockId: string, blockText: string) {

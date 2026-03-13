@@ -23,7 +23,7 @@ interface SelectionDraft {
   occurrence: number;
   prefix: string;
   suffix: string;
-  rect: { top: number; left: number; bottom: number };
+  rect: { top: number; left: number; bottom: number; width: number };
   range: Range;
 }
 
@@ -124,6 +124,7 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], o
         top: rect.top + window.scrollY,
         left: rect.left + window.scrollX,
         bottom: rect.bottom + window.scrollY,
+        width: rect.width,
       },
       range: range.cloneRange(),
     });
