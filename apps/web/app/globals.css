@@ -354,7 +354,8 @@ code {
 .document-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 12px var(--document-toc-width, 280px);
-  gap: 20px;
+  column-gap: 0;
+  row-gap: 20px;
   align-items: start;
 }
 
@@ -391,6 +392,7 @@ code {
   touch-action: none;
   opacity: 0.55;
   transition: opacity 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+  justify-self: stretch;
 }
 
 .document-resize-handle:hover,
