@@ -754,13 +754,15 @@ code {
 }
 
 .workspace-root-list,
-.command-palette-list {
+.command-palette-list,
+.shortcut-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.workspace-root-list {
+.workspace-root-list,
+.shortcut-list {
   display: flex;
   flex-direction: column;
   gap: 10px;

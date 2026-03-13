@@ -35,7 +35,7 @@ export function AppHeader() {
         {desktop ? (
           <Button type="button" variant="outline" size="sm" onClick={() => void executeDesktopCommand('toggle-command-palette')}>
             <Command className="size-4" />
-            Palette
+            Palette ⌘⇧P
           </Button>
         ) : null}
         <Separator orientation="vertical" className="header-separator hidden h-8 md:block" />
