@@ -1,6 +1,10 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+import { findQuotedTextRange, normalizeWhitespace, type AnnotationTextAnchor, type DocumentAnnotation } from '@/shared/lib/annotations';
 import { resolveAssetHref, isImageAsset } from '@/shared/lib/assets';
 import { resolveMarkdownLink } from '@/shared/lib/content-links';
 import { createSlugger, extractCodeText } from '@/shared/lib/markdown';
@@ -10,91 +14,205 @@ import { DesktopAssetLink } from '@/shared/ui/desktop-asset';
 import { MarkdownImage } from '@/shared/ui/markdown-image';
 import { MermaidBlock } from '@/shared/ui/mermaid-block';
 
+interface SelectionDraft {
+  text: string;
+  blockId: string;
+  quote: string;
+  occurrence: number;
+  prefix: string;
+  suffix: string;
+  rect: { top: number; left: number; bottom: number };
+}
+
 interface MarkdownViewProps {
   content: string;
   currentRelativePath: string;
+  annotations?: DocumentAnnotation[];
+  onSelectionChange?: (selection: SelectionDraft | null) => void;
 }
 
-export function MarkdownView({ content, currentRelativePath }: MarkdownViewProps) {
+export function MarkdownView({ content, currentRelativePath, annotations = [], onSelectionChange }: MarkdownViewProps) {
   const createHeadingId = createSlugger();
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    cleanupAnnotationMarks(container);
+
+    annotations.forEach((annotation) => {
+      if (annotation.anchor.kind !== 'text-range') {
+        return;
+      }
+
+      const block = container.querySelector<HTMLElement>(`[data-annotation-block-id="${annotation.anchor.blockId}"]`);
+      if (!block) {
+        return;
+      }
+
+      applyTextAnnotation(block, annotation.id, annotation.anchor, annotation.kind);
+    });
+  }, [annotations]);
+
+  function handleMouseUp() {
+    if (!onSelectionChange || !containerRef.current) {
+      return;
+    }
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+      onSelectionChange(null);
+      return;
+    }
+
+    const range = selection.getRangeAt(0);
+    if (!containerRef.current.contains(range.commonAncestorContainer)) {
+      onSelectionChange(null);
+      return;
+    }
+
+    const block = getClosestBlock(range.commonAncestorContainer);
+    if (!block) {
+      onSelectionChange(null);
+      return;
+    }
+
+    const blockId = block.dataset.annotationBlockId;
+    if (!blockId) {
+      onSelectionChange(null);
+      return;
+    }
+
+    const text = normalizeWhitespace(selection.toString());
+    const blockText = normalizeWhitespace(block.innerText);
+    if (!text || !blockText.includes(text)) {
+      onSelectionChange(null);
+      return;
+    }
+
+    const occurrence = countTextOccurrences(blockText, text, range, block);
+    const match = buildSelectionContext(blockText, text, occurrence);
+    const rect = range.getBoundingClientRect();
+
+    onSelectionChange({
+      text,
+      blockId,
+      quote: match.quote,
+      occurrence: match.occurrence,
+      prefix: match.prefix,
+      suffix: match.suffix,
+      rect: {
+        top: rect.top + window.scrollY,
+        left: rect.left + window.scrollX,
+        bottom: rect.bottom + window.scrollY,
+      },
+    });
+  }
 
   return (
-    <ReactMarkdown
-      remarkPlugins={[remarkGfm]}
-      components={{
-        a: ({ href = '', children }) => {
-          if (href.startsWith('/docs/') || href.startsWith('/browse/')) {
-            return <AppLink href={href}>{children}</AppLink>;
-          }
+    <div ref={containerRef} className="markdown-annotation-surface" onMouseUp={handleMouseUp}>
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          a: ({ href = '', children }) => {
+            if (href.startsWith('/docs/') || href.startsWith('/browse/')) {
+              return <AppLink href={href}>{children}</AppLink>;
+            }
 
-          const isSpecialHref = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('#');
-          const resolvedMarkdown = resolveMarkdownLink(currentRelativePath, href);
+            const isSpecialHref = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('#');
+            const resolvedMarkdown = resolveMarkdownLink(currentRelativePath, href);
 
-          if (!resolvedMarkdown || (resolvedMarkdown === href && isSpecialHref)) {
-            return <AppAnchorLink href={href}>{children}</AppAnchorLink>;
-          }
+            if (!resolvedMarkdown || (resolvedMarkdown === href && isSpecialHref)) {
+              return <AppAnchorLink href={href}>{children}</AppAnchorLink>;
+            }
 
-          if (href.startsWith('http://') || href.startsWith('https://')) {
-            return (
-              <a href={href} target="_blank" rel="noreferrer">
-                {children}
-              </a>
-            );
-          }
+            if (href.startsWith('http://') || href.startsWith('https://')) {
+              return (
+                <a href={href} target="_blank" rel="noreferrer">
+                  {children}
+                </a>
+              );
+            }
 
-          if (!href.endsWith('.md')) {
-            const assetHref = resolveAssetHref(currentRelativePath, href);
-            const relativeAssetPath = assetHref.replace(/^\/assets\//, '');
+            if (!href.endsWith('.md')) {
+              const assetHref = resolveAssetHref(currentRelativePath, href);
+              const relativeAssetPath = assetHref.replace(/^\/assets\//, '');
 
-            return (
-              <DesktopAssetLink relativePath={decodeURIComponent(relativeAssetPath)} fallbackHref={assetHref}>
-                {children}
-              </DesktopAssetLink>
-            );
-          }
+              return (
+                <DesktopAssetLink relativePath={decodeURIComponent(relativeAssetPath)} fallbackHref={assetHref}>
+                  {children}
+                </DesktopAssetLink>
+              );
+            }
 
-          return <AppLink href={resolvedMarkdown}>{children}</AppLink>;
-        },
-        img: ({ src = '', alt = '' }) => {
-          const assetHref = resolveAssetHref(currentRelativePath, src);
+            return <AppLink href={resolvedMarkdown}>{children}</AppLink>;
+          },
+          img: ({ src = '', alt = '' }) => {
+            const assetHref = resolveAssetHref(currentRelativePath, src);
 
-          if (!assetHref || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) {
-            return <img src={src} alt={alt} className="markdown-image" />;
-          }
+            if (!assetHref || src.startsWith('http://') || src.startsWith('https://') || src.startsWith('data:')) {
+              return <img src={src} alt={alt} className="markdown-image" />;
+            }
 
-          if (!isImageAsset(src)) {
-            const relativeAssetPath = assetHref.replace(/^\/assets\//, '');
-            return (
-              <DesktopAssetLink relativePath={decodeURIComponent(relativeAssetPath)} fallbackHref={assetHref}>
-                {alt || src}
-              </DesktopAssetLink>
-            );
-          }
+            if (!isImageAsset(src)) {
+              const relativeAssetPath = assetHref.replace(/^\/assets\//, '');
+              return (
+                <DesktopAssetLink relativePath={decodeURIComponent(relativeAssetPath)} fallbackHref={assetHref}>
+                  {alt || src}
+                </DesktopAssetLink>
+              );
+            }
 
-          return <MarkdownImage src={src} alt={alt} currentRelativePath={currentRelativePath} />;
-        },
-        h1: ({ children }) => <Heading level={1} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
-        h2: ({ children }) => <Heading level={2} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
-        h3: ({ children }) => <Heading level={3} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
-        code: ({ className, children, ...props }) => {
-          const language = className?.replace('language-', '').trim();
-          const code = extractCodeText(children).replace(/\n$/, '');
-          const isInline = !className && !code.includes('\n');
+            return <MarkdownImage src={src} alt={alt} currentRelativePath={currentRelativePath} />;
+          },
+          h1: ({ children }) => <Heading level={1} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
+          h2: ({ children }) => <Heading level={2} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
+          h3: ({ children }) => <Heading level={3} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
+          p: ({ children }) => <Block levelTag="p" text={extractPlainText(children)}>{children}</Block>,
+          blockquote: ({ children }) => <Block levelTag="blockquote" text={extractPlainText(children)}>{children}</Block>,
+          li: ({ children }) => <Block levelTag="li" text={extractPlainText(children)}>{children}</Block>,
+          code: ({ className, children, ...props }) => {
+            const language = className?.replace('language-', '').trim();
+            const code = extractCodeText(children).replace(/\n$/, '');
+            const isInline = !className && !code.includes('\n');
 
-          if (isInline) {
-            return <code className={className} {...props}>{children}</code>;
-          }
+            if (isInline) {
+              return <code className={className} {...props}>{children}</code>;
+            }
 
-          if (language === 'mermaid') {
-            return <MermaidBlock chart={code.trim()} />;
-          }
+            if (language === 'mermaid') {
+              return <MermaidBlock chart={code.trim()} />;
+            }
 
-          return <CodeBlock code={code} language={language} />;
-        },
-      }}
-    >
-      {content}
-    </ReactMarkdown>
+            return <CodeBlock code={code} language={language} />;
+          },
+        }}
+      >
+        {content}
+      </ReactMarkdown>
+    </div>
+  );
+}
+
+function Block({
+  levelTag,
+  text,
+  children,
+}: {
+  levelTag: 'p' | 'li' | 'blockquote';
+  text: string;
+  children: React.ReactNode;
+}) {
+  const blockId = createHeadingIdFromText(text);
+  const Tag = levelTag;
+
+  return (
+    <Tag className="annotation-block" data-annotation-block-id={blockId}>
+      {children}
+    </Tag>
   );
 }
 
@@ -111,13 +229,17 @@ function Heading({ level, id, children }: { level: 1 | 2 | 3; id: string; childr
   );
 }
 
+function createHeadingIdFromText(text: string) {
+  return normalizeWhitespace(text).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '').slice(0, 64) || 'block';
+}
+
 function extractPlainText(node: React.ReactNode): string {
   if (typeof node === 'string' || typeof node === 'number') {
     return String(node);
   }
 
   if (Array.isArray(node)) {
-    return node.map((child) => extractPlainText(child)).join('');
+    return node.map((child) => extractPlainText(child)).join(' ');
   }
 
   if (node && typeof node === 'object' && 'props' in node) {
@@ -126,4 +248,146 @@ function extractPlainText(node: React.ReactNode): string {
   }
 
   return '';
+}
+
+function getClosestBlock(node: Node) {
+  if (node instanceof HTMLElement) {
+    return node.closest<HTMLElement>('[data-annotation-block-id]');
+  }
+
+  return node.parentElement?.closest<HTMLElement>('[data-annotation-block-id]') ?? null;
+}
+
+function buildSelectionContext(blockText: string, quote: string, occurrence: number) {
+  let fromIndex = 0;
+  let index = -1;
+  for (let step = 0; step <= occurrence; step += 1) {
+    index = blockText.indexOf(quote, fromIndex);
+    if (index === -1) {
+      index = blockText.indexOf(quote);
+      break;
+    }
+    fromIndex = index + quote.length;
+  }
+
+  const safeIndex = Math.max(0, index);
+  return {
+    quote,
+    occurrence,
+    prefix: blockText.slice(Math.max(0, safeIndex - 24), safeIndex),
+    suffix: blockText.slice(safeIndex + quote.length, safeIndex + quote.length + 24),
+  };
+}
+
+function countTextOccurrences(blockText: string, quote: string, range: Range, block: HTMLElement) {
+  const preRange = document.createRange();
+  preRange.selectNodeContents(block);
+  preRange.setEnd(range.startContainer, range.startOffset);
+  const beforeText = normalizeWhitespace(preRange.toString());
+  let occurrence = 0;
+  let fromIndex = 0;
+
+  while (fromIndex >= 0) {
+    const matchIndex = blockText.indexOf(quote, fromIndex);
+    if (matchIndex === -1 || matchIndex > beforeText.length) {
+      break;
+    }
+
+    occurrence += 1;
+    fromIndex = matchIndex + quote.length;
+  }
+
+  return Math.max(0, occurrence - 1);
+}
+
+function cleanupAnnotationMarks(container: HTMLElement) {
+  container.querySelectorAll<HTMLElement>('[data-annotation-mark="true"]').forEach((mark) => {
+    const parent = mark.parentNode;
+    if (!parent) {
+      return;
+    }
+
+    while (mark.firstChild) {
+      parent.insertBefore(mark.firstChild, mark);
+    }
+
+    parent.removeChild(mark);
+  });
+
+}
+
+function applyTextAnnotation(block: HTMLElement, annotationId: string, anchor: AnnotationTextAnchor, kind: DocumentAnnotation['kind']) {
+  const range = locateTextRange(block, anchor);
+  if (!range) {
+    return;
+  }
+
+  const mark = document.createElement('mark');
+  mark.dataset.annotationMark = 'true';
+  mark.dataset.annotationId = annotationId;
+  mark.className = kind === 'comment' ? 'annotation-inline-mark is-comment' : 'annotation-inline-mark';
+  try {
+    range.surroundContents(mark);
+  } catch {
+    // cross-node selection edge cases are skipped in the minimal draft renderer
+  }
+}
+
+function locateTextRange(block: HTMLElement, anchor: AnnotationTextAnchor) {
+  const target = findQuotedTextRange(normalizeWhitespace(block.innerText), anchor);
+  if (!target) {
+    return null;
+  }
+
+  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+  let seen = 0;
+  let startNode: Text | null = null;
+  let endNode: Text | null = null;
+  let startOffset = 0;
+  let endOffset = 0;
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    const text = node.textContent ?? '';
+    for (let index = 0; index < text.length; index += 1) {
+      const char = text[index];
+      if (/\s/.test(char)) {
+        if (seen > 0 && /\s/.test(normalizeWhitespace(block.innerText).charAt(Math.min(seen, normalizeWhitespace(block.innerText).length - 1)))) {
+          continue;
+        }
+      }
+
+      if (seen === target.start) {
+        startNode = node;
+        startOffset = index;
+      }
+
+      if (seen === target.end) {
+        endNode = node;
+        endOffset = index;
+        break;
+      }
+
+      seen += 1;
+    }
+
+    if (startNode && !endNode && seen === target.end) {
+      endNode = node;
+      endOffset = text.length;
+      break;
+    }
+
+    if (startNode && endNode) {
+      break;
+    }
+  }
+
+  if (!startNode) {
+    return null;
+  }
+
+  const range = document.createRange();
+  range.setStart(startNode, startOffset);
+  range.setEnd(endNode ?? startNode, endNode ? endOffset : startNode.textContent?.length ?? startOffset);
+  return range;
 }
