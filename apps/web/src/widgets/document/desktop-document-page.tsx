@@ -33,6 +33,12 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
   const document = desktopRenderer ? documentPageQuery.data?.document ?? null : initialDocument;
   const knownDocuments = desktopRenderer ? documentPageQuery.data?.knownDocuments ?? [] : initialKnownDocuments;
   const sidebarTree = desktopRenderer ? documentPageQuery.data?.sidebarTree ?? [] : initialSidebarTree;
+  const content = useMemo(
+    () => preprocessWikiLinks(document?.content ?? '', (rawTarget) => resolveWikiLinkHref(document?.relativePath ?? relativePath, rawTarget, knownDocuments)),
+    [document?.content, document?.relativePath, knownDocuments, relativePath]
+  );
+  const headings = useMemo(() => extractHeadings(content), [content]);
+  const stats = useMemo(() => summarizeDocument(content, headings.length), [content, headings.length]);
 
   if (desktopRenderer && !contentRootQuery.isLoading && !contentRootQuery.data) {
     return <DesktopContentRootEmptyState />;
@@ -53,10 +59,6 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
       </section>
     );
   }
-
-  const content = useMemo(() => preprocessWikiLinks(document.content, (rawTarget) => resolveWikiLinkHref(document.relativePath, rawTarget, knownDocuments)), [document.content, document.relativePath, knownDocuments]);
-  const headings = useMemo(() => extractHeadings(content), [content]);
-  const stats = useMemo(() => summarizeDocument(content, headings.length), [content, headings.length]);
   const directorySegments = slug.slice(0, -1);
   const directoryPath = directorySegments.join('/');
 

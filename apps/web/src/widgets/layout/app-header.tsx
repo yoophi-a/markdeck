@@ -5,8 +5,9 @@ import { Suspense } from 'react';
 
 import { SearchForm } from '@/features/search/ui/search-form';
 import { ThemeToggle } from '@/features/theme/ui/theme-toggle';
-import { executeDesktopCommand, isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
+import { executeDesktopCommand } from '@/platform/desktop/renderer/desktop-api';
 import { DesktopRefreshStatus } from '@/platform/desktop/renderer/desktop-refresh-status';
+import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 import { cn } from '@/shared/lib/utils';
 import { AppLink } from '@/shared/ui/app-link';
 import { Button, buttonVariants } from '@/shared/ui/button';
@@ -16,7 +17,7 @@ import { ContentRootSelector } from '@/widgets/layout/content-root-selector';
 const appTitle = process.env.MARKDECK_APP_TITLE ?? 'MarkDeck';
 
 export function AppHeader() {
-  const desktop = isDesktopRenderer();
+  const desktop = useDesktopRenderer();
 
   return (
     <header className="topbar">

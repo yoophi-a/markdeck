@@ -3,13 +3,15 @@
 import { RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { executeDesktopCommand, isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
+import { executeDesktopCommand } from '@/platform/desktop/renderer/desktop-api';
+import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 
 export function DesktopRefreshStatus() {
+  const desktopRenderer = useDesktopRenderer();
   const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isDesktopRenderer()) {
+    if (!desktopRenderer) {
       return;
     }
 
@@ -20,9 +22,9 @@ export function DesktopRefreshStatus() {
 
     window.addEventListener('markdeck:content-invalidated-ui', handleRefresh as EventListener);
     return () => window.removeEventListener('markdeck:content-invalidated-ui', handleRefresh as EventListener);
-  }, []);
+  }, [desktopRenderer]);
 
-  if (!isDesktopRenderer()) {
+  if (!desktopRenderer) {
     return null;
   }
 
