@@ -5,14 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DesktopContentRootEmptyState, DesktopErrorFallback } from '@/platform/desktop/renderer/desktop-error-fallback';
 import { useDesktopContentRootQuery, useDesktopDocumentPageQuery } from '@/platform/desktop/renderer/desktop-queries';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
-import {
-  createAnnotationId,
-  createTimestamp,
-  type AnnotationDocument,
-  type CommentAnnotation,
-  type DocumentAnnotation,
-  type HighlightAnnotation,
-} from '@/shared/lib/annotations';
+import { createAnnotationId, createTimestamp, type AnnotationDocument, type DocumentAnnotation } from '@/shared/lib/annotations';
 import type { DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/shared/lib/markdown';
@@ -20,8 +13,8 @@ import { stringifyMemoFile } from '@/shared/lib/memo-format';
 import { toBrowseHref } from '@/shared/lib/routes';
 import { writeLastDocumentState } from '@/shared/lib/view-state';
 import { AppLink } from '@/shared/ui/app-link';
-import { Button } from '@/shared/ui/button';
 import { DocumentFeedbackPanel } from '@/widgets/document/document-feedback-panel';
+import { AnnotationSelectionPopover } from '@/widgets/document/annotation-selection-popover';
 import { DocumentReaderLayout } from '@/widgets/document/document-reader-layout';
 import { DocumentTree } from '@/widgets/document/document-tree';
 import { MarkdownView } from '@/widgets/document/markdown-view';
@@ -59,7 +52,6 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
   const contentRootKey = contentRootQuery.data ?? 'web';
   const [annotations, setAnnotations] = useState<DocumentAnnotation[]>([]);
   const [selectionDraft, setSelectionDraft] = useState<SelectionDraft | null>(null);
-  const [commentDraft, setCommentDraft] = useState('');
   const content = useMemo(
     () => preprocessWikiLinks(document?.content ?? '', (rawTarget) => resolveWikiLinkHref(document?.relativePath ?? relativePath, rawTarget, knownDocuments)),
     [document?.content, document?.relativePath, knownDocuments, relativePath]
@@ -168,93 +160,26 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
         annotations={annotations}
         onSelectionChange={(draft) => {
           setSelectionDraft(draft);
-          setCommentDraft('');
         }}
         onToggleDeletion={({ blockId, blockText }) => {
           setAnnotations((current) => toggleDeletionAnnotation(current, blockId, blockText));
         }}
       />
       {selectionDraft && selectionPopoverPosition ? (
-        <div
-          className="annotation-selection-popover"
-          style={{ top: `${selectionPopoverPosition.top}px`, left: `${selectionPopoverPosition.left}px` }}
-          data-placement={selectionPopoverPosition.placement}
-          onMouseDownCapture={(event) => {
-            const target = event.target as HTMLElement;
-            if (target.closest('textarea, input')) {
-              return;
-            }
-
-            event.preventDefault();
-            restoreSelectionDraft();
+        <AnnotationSelectionPopover
+          selectionDraft={selectionDraft}
+          position={selectionPopoverPosition}
+          onRestoreSelection={restoreSelectionDraft}
+          onClose={() => setSelectionDraft(null)}
+          onAddHighlight={(annotation) => {
+            setAnnotations((current) => [...current, annotation]);
+            setSelectionDraft(null);
           }}
-        >
-          <div className="annotation-selection-toolbar">
-            <Button type="button" size="sm" onClick={() => {
-              restoreSelectionDraft();
-              const annotation: HighlightAnnotation = {
-                id: createAnnotationId(),
-                kind: 'highlight',
-                color: 'yellow',
-                createdAt: createTimestamp(),
-                updatedAt: createTimestamp(),
-                anchor: {
-                  kind: 'text-range',
-                  blockId: selectionDraft.blockId,
-                  quote: selectionDraft.quote,
-                  occurrence: selectionDraft.occurrence,
-                  prefix: selectionDraft.prefix,
-                  suffix: selectionDraft.suffix,
-                },
-              };
-              setAnnotations((current) => [...current, annotation]);
-              setSelectionDraft(null);
-            }}>하이라이트</Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => {
-              restoreSelectionDraft();
-              setCommentDraft((current) => current || selectionDraft.text);
-            }}>코멘트</Button>
-            <Button type="button" size="sm" variant="ghost" onClick={() => setSelectionDraft(null)}>닫기</Button>
-          </div>
-          {commentDraft ? (
-            <div className="annotation-comment-form">
-              <textarea
-                value={commentDraft}
-                onChange={(event) => setCommentDraft(event.target.value)}
-                onFocus={restoreSelectionDraft}
-                placeholder="선택한 영역에 대한 코멘트를 적어 주세요"
-              />
-              <div className="annotation-comment-actions">
-                <Button type="button" size="sm" onClick={() => {
-                  restoreSelectionDraft();
-                  const trimmed = commentDraft.trim();
-                  if (!trimmed) {
-                    return;
-                  }
-                  const annotation: CommentAnnotation = {
-                    id: createAnnotationId(),
-                    kind: 'comment',
-                    color: 'yellow',
-                    comment: trimmed,
-                    createdAt: createTimestamp(),
-                    updatedAt: createTimestamp(),
-                    anchor: {
-                      kind: 'text-range',
-                      blockId: selectionDraft.blockId,
-                      quote: selectionDraft.quote,
-                      occurrence: selectionDraft.occurrence,
-                      prefix: selectionDraft.prefix,
-                      suffix: selectionDraft.suffix,
-                    },
-                  };
-                  setAnnotations((current) => [...current, annotation]);
-                  setCommentDraft('');
-                  setSelectionDraft(null);
-                }}>코멘트 저장</Button>
-              </div>
-            </div>
-          ) : null}
-        </div>
+          onAddComment={(annotation) => {
+            setAnnotations((current) => [...current, annotation]);
+            setSelectionDraft(null);
+          }}
+        />
       ) : null}
     </article>
   );
