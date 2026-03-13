@@ -65,6 +65,19 @@ export function DesktopEventBridge() {
         case 'go-search':
           navigateDesktop('/search');
           break;
+        case 'open-launch-target': {
+          const relativeDocumentPath =
+            payload.payload && typeof payload.payload === 'object' && 'relativeDocumentPath' in payload.payload
+              ? payload.payload.relativeDocumentPath
+              : null;
+
+          if (typeof relativeDocumentPath === 'string' && relativeDocumentPath.length > 0) {
+            navigateDesktop(`/docs/${relativeDocumentPath}`);
+          } else {
+            navigateDesktop('/browse');
+          }
+          break;
+        }
         case 'go-back':
           window.history.back();
           break;
