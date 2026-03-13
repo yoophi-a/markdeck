@@ -1,10 +1,13 @@
 'use client';
 
+import { useEffect } from 'react';
+
 import { DesktopContentRootEmptyState, DesktopErrorFallback } from '@/platform/desktop/renderer/desktop-error-fallback';
 import { useDesktopContentRootQuery, useDesktopDirectoryQuery } from '@/platform/desktop/renderer/desktop-queries';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 import type { BrowserEntry } from '@/shared/lib/content-types';
 import { prettyPath } from '@/shared/lib/format';
+import { writeLastBrowseState } from '@/shared/lib/view-state';
 import { BrowserList } from '@/widgets/content/browser-list';
 import { Breadcrumbs } from '@/widgets/navigation/breadcrumbs';
 
@@ -19,6 +22,19 @@ export function DesktopBrowserContent({ segments, initialEntries }: DesktopBrows
   const contentRootQuery = useDesktopContentRootQuery(desktopRenderer);
   const entriesQuery = useDesktopDirectoryQuery(relativePath, desktopRenderer);
   const entries = desktopRenderer ? entriesQuery.data : initialEntries;
+  const contentRootKey = contentRootQuery.data ?? 'web';
+
+  useEffect(() => {
+    if (desktopRenderer && !contentRootQuery.data) {
+      return;
+    }
+
+    writeLastBrowseState({
+      contentRootKey,
+      relativePath,
+      viewedAt: new Date().toISOString(),
+    });
+  }, [contentRootKey, contentRootQuery.data, desktopRenderer, relativePath]);
 
   if (desktopRenderer && !contentRootQuery.isLoading && !contentRootQuery.data) {
     return <DesktopContentRootEmptyState />;

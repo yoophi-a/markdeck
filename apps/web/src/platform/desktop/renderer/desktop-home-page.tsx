@@ -4,6 +4,7 @@ import { useDesktopContentRootQuery, useDesktopRecentContentRootsQuery, useOpenD
 import { DesktopContentRootEmptyState } from '@/platform/desktop/renderer/desktop-error-fallback';
 import { PinnedDocuments } from '@/widgets/document/pinned-documents';
 import { RecentDocuments } from '@/widgets/document/recent-documents';
+import { SessionResumeCard } from '@/widgets/navigation/session-resume-card';
 
 export function DesktopHomePage() {
   const contentRootQuery = useDesktopContentRootQuery(true);
@@ -44,6 +45,8 @@ export function DesktopHomePage() {
           <p className="muted">ignore patterns: .git, node_modules</p>
         </article>
       </div>
+
+      {contentRoot ? <SessionResumeCard contentRootKey={contentRoot} /> : null}
 
       <div className="grid two-up">
         <article className="card stack">

@@ -7,6 +7,7 @@ import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
 import { useDesktopDocumentTreeQuery } from '@/platform/desktop/renderer/desktop-queries';
 import type { DocumentTreeNode } from '@/shared/lib/content-types';
 import { toBrowseHref, toDocHref } from '@/shared/lib/routes';
+import { readTreeState, writeTreeState } from '@/shared/lib/view-state';
 import { AppLink } from '@/shared/ui/app-link';
 import { Button } from '@/shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
@@ -16,9 +17,10 @@ interface DocumentTreeProps {
   title?: string;
   nodes: DocumentTreeNode[];
   activeRelativePath?: string;
+  storageScope?: string;
 }
 
-export function DocumentTree({ title = '파일과 폴더', nodes, activeRelativePath }: DocumentTreeProps) {
+export function DocumentTree({ title = '파일과 폴더', nodes, activeRelativePath, storageScope = 'default' }: DocumentTreeProps) {
   const [treeNodes, setTreeNodes] = useState(nodes);
   const [queryPath, setQueryPath] = useState<string | null>(null);
   const defaultExpandedPaths = useMemo(() => collectExpandedPaths(nodes, activeRelativePath), [nodes, activeRelativePath]);
@@ -27,8 +29,15 @@ export function DocumentTree({ title = '파일과 폴더', nodes, activeRelative
 
   useEffect(() => {
     setTreeNodes(nodes);
-    setExpandedPaths(new Set(defaultExpandedPaths));
-  }, [defaultExpandedPaths, nodes]);
+
+    const persistedPaths = readTreeState(storageScope);
+    const nextPaths = new Set([...defaultExpandedPaths, ...persistedPaths]);
+    setExpandedPaths(nextPaths);
+  }, [defaultExpandedPaths, nodes, storageScope]);
+
+  useEffect(() => {
+    writeTreeState(storageScope, Array.from(expandedPaths));
+  }, [expandedPaths, storageScope]);
 
   useEffect(() => {
     if (!queryPath || !desktopTreeQuery.data) {

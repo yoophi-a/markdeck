@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 
 import { DesktopContentRootEmptyState, DesktopErrorFallback } from '@/platform/desktop/renderer/desktop-error-fallback';
 import { useDesktopContentRootQuery, useDesktopDocumentPageQuery } from '@/platform/desktop/renderer/desktop-queries';
@@ -9,6 +9,7 @@ import type { DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-ty
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/shared/lib/markdown';
 import { toBrowseHref } from '@/shared/lib/routes';
+import { writeLastDocumentState } from '@/shared/lib/view-state';
 import { AppLink } from '@/shared/ui/app-link';
 import { DocumentReaderLayout } from '@/widgets/document/document-reader-layout';
 import { DocumentTree } from '@/widgets/document/document-tree';
@@ -33,12 +34,30 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
   const document = desktopRenderer ? documentPageQuery.data?.document ?? null : initialDocument;
   const knownDocuments = desktopRenderer ? documentPageQuery.data?.knownDocuments ?? [] : initialKnownDocuments;
   const sidebarTree = desktopRenderer ? documentPageQuery.data?.sidebarTree ?? [] : initialSidebarTree;
+  const contentRootKey = contentRootQuery.data ?? 'web';
   const content = useMemo(
     () => preprocessWikiLinks(document?.content ?? '', (rawTarget) => resolveWikiLinkHref(document?.relativePath ?? relativePath, rawTarget, knownDocuments)),
     [document?.content, document?.relativePath, knownDocuments, relativePath]
   );
   const headings = useMemo(() => extractHeadings(content), [content]);
   const stats = useMemo(() => summarizeDocument(content, headings.length), [content, headings.length]);
+
+  useEffect(() => {
+    if (!document) {
+      return;
+    }
+
+    if (desktopRenderer && !contentRootQuery.data) {
+      return;
+    }
+
+    writeLastDocumentState({
+      contentRootKey,
+      relativePath: document.relativePath,
+      title: document.title,
+      viewedAt: new Date().toISOString(),
+    });
+  }, [contentRootKey, contentRootQuery.data, desktopRenderer, document]);
 
   if (desktopRenderer && !contentRootQuery.isLoading && !contentRootQuery.data) {
     return <DesktopContentRootEmptyState />;
@@ -90,7 +109,7 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
       </div>
 
       <DocumentReaderLayout
-        tree={<DocumentTree title="현재 폴더" nodes={sidebarTree} activeRelativePath={document.relativePath} />}
+        tree={<DocumentTree title="현재 폴더" nodes={sidebarTree} activeRelativePath={document.relativePath} storageScope={contentRootKey} />}
         document={
           <>
             {documentArticle}
