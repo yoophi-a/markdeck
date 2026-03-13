@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { ScissorsLineDashed } from 'lucide-react';
+import { useEffect, useMemo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import { findQuotedTextRange, normalizeWhitespace, type AnnotationTextAnchor, type DocumentAnnotation } from '@/shared/lib/annotations';
+import { findQuotedTextRange, normalizeWhitespace, type AnnotationTextAnchor, type DeletionAnnotation, type DocumentAnnotation } from '@/shared/lib/annotations';
 import { resolveAssetHref, isImageAsset } from '@/shared/lib/assets';
 import { resolveMarkdownLink } from '@/shared/lib/content-links';
 import { createSlugger, extractCodeText } from '@/shared/lib/markdown';
 import { AppAnchorLink, AppLink } from '@/shared/ui/app-link';
+import { Button } from '@/shared/ui/button';
 import { CodeBlock } from '@/shared/ui/code-block';
 import { DesktopAssetLink } from '@/shared/ui/desktop-asset';
 import { MarkdownImage } from '@/shared/ui/markdown-image';
@@ -29,11 +31,16 @@ interface MarkdownViewProps {
   currentRelativePath: string;
   annotations?: DocumentAnnotation[];
   onSelectionChange?: (selection: SelectionDraft | null) => void;
+  onToggleDeletion?: (payload: { blockId: string; blockText: string }) => void;
 }
 
-export function MarkdownView({ content, currentRelativePath, annotations = [], onSelectionChange }: MarkdownViewProps) {
+export function MarkdownView({ content, currentRelativePath, annotations = [], onSelectionChange, onToggleDeletion }: MarkdownViewProps) {
   const createHeadingId = createSlugger();
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const deletedBlockIds = useMemo(
+    () => new Set(annotations.filter((annotation): annotation is DeletionAnnotation => annotation.kind === 'deletion').map((annotation) => annotation.anchor.blockId)),
+    [annotations]
+  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -44,6 +51,14 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], o
     cleanupAnnotationMarks(container);
 
     annotations.forEach((annotation) => {
+      if (annotation.anchor.kind === 'block' && annotation.kind === 'deletion') {
+        const block = container.querySelector<HTMLElement>(`[data-annotation-block-id="${annotation.anchor.blockId}"]`);
+        if (block) {
+          block.dataset.annotationDeleted = 'true';
+        }
+        return;
+      }
+
       if (annotation.anchor.kind !== 'text-range') {
         return;
       }
@@ -171,9 +186,21 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], o
           h1: ({ children }) => <Heading level={1} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
           h2: ({ children }) => <Heading level={2} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
           h3: ({ children }) => <Heading level={3} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
-          p: ({ children }) => <Block levelTag="p" text={extractPlainText(children)}>{children}</Block>,
-          blockquote: ({ children }) => <Block levelTag="blockquote" text={extractPlainText(children)}>{children}</Block>,
-          li: ({ children }) => <Block levelTag="li" text={extractPlainText(children)}>{children}</Block>,
+          p: ({ children }) => (
+            <Block levelTag="p" text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>
+              {children}
+            </Block>
+          ),
+          blockquote: ({ children }) => (
+            <Block levelTag="blockquote" text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>
+              {children}
+            </Block>
+          ),
+          li: ({ children }) => (
+            <Block levelTag="li" text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>
+              {children}
+            </Block>
+          ),
           code: ({ className, children, ...props }) => {
             const language = className?.replace('language-', '').trim();
             const code = extractCodeText(children).replace(/\n$/, '');
@@ -200,17 +227,37 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], o
 function Block({
   levelTag,
   text,
+  deleted,
+  onToggleDeletion,
   children,
 }: {
   levelTag: 'p' | 'li' | 'blockquote';
   text: string;
+  deleted: boolean;
+  onToggleDeletion?: (payload: { blockId: string; blockText: string }) => void;
   children: React.ReactNode;
 }) {
   const blockId = createHeadingIdFromText(text);
   const Tag = levelTag;
 
   return (
-    <Tag className="annotation-block" data-annotation-block-id={blockId}>
+    <Tag className="annotation-block" data-annotation-block-id={blockId} data-annotation-deleted={deleted ? 'true' : undefined}>
+      {onToggleDeletion ? (
+        <Button
+          type="button"
+          variant={deleted ? 'destructive' : 'ghost'}
+          size="icon-xs"
+          className="annotation-delete-button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleDeletion({ blockId, blockText: normalizeWhitespace(text) });
+          }}
+          title={deleted ? '삭제 표시 해제' : '이 문단 삭제 표시'}
+        >
+          <ScissorsLineDashed className="size-3.5" />
+        </Button>
+      ) : null}
       {children}
     </Tag>
   );
@@ -314,6 +361,9 @@ function cleanupAnnotationMarks(container: HTMLElement) {
     parent.removeChild(mark);
   });
 
+  container.querySelectorAll<HTMLElement>('[data-annotation-block-id]').forEach((block) => {
+    delete block.dataset.annotationDeleted;
+  });
 }
 
 function applyTextAnnotation(block: HTMLElement, annotationId: string, anchor: AnnotationTextAnchor, kind: DocumentAnnotation['kind']) {

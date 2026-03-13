@@ -122,6 +122,9 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
           setSelectionDraft(draft);
           setCommentDraft('');
         }}
+        onToggleDeletion={({ blockId, blockText }) => {
+          setAnnotations((current) => toggleDeletionAnnotation(current, blockId, blockText));
+        }}
       />
       {selectionDraft ? (
         <div className="annotation-selection-popover" style={{ top: `${selectionDraft.rect.bottom + 8}px`, left: `${selectionDraft.rect.left}px` }}>
@@ -264,5 +267,26 @@ function writeAnnotations(relativePath: string, annotations: DocumentAnnotation[
   }
 
   window.localStorage.setItem(annotationStorageKey(relativePath), JSON.stringify(annotations));
+}
+
+function toggleDeletionAnnotation(current: DocumentAnnotation[], blockId: string, blockText: string) {
+  const existing = current.find((annotation) => annotation.kind === 'deletion' && annotation.anchor.kind === 'block' && annotation.anchor.blockId === blockId);
+  if (existing) {
+    return current.filter((annotation) => annotation.id !== existing.id);
+  }
+
+  const annotation: DocumentAnnotation = {
+    id: createAnnotationId(),
+    kind: 'deletion',
+    reason: `문단 삭제 제안: ${blockText.slice(0, 80)}`,
+    createdAt: createTimestamp(),
+    updatedAt: createTimestamp(),
+    anchor: {
+      kind: 'block',
+      blockId,
+    },
+  };
+
+  return [...current, annotation];
 }
 
