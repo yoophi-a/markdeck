@@ -147,7 +147,7 @@ npm run build
 npm start
 ```
 
-웹 앱은 `apps/web`에 위치하고, 루트 스크립트는 workspace를 통해 `@markdeck/web`를 실행합니다.
+웹 앱은 `apps/web`에 위치합니다. 루트 `npm run build`는 desktop production과 동일한 `@markdeck/desktop build:web` 파이프라인을 타서 Next standalone 산출물 준비까지 함께 검증합니다.
 
 ### 5) Run desktop app in development
 
@@ -166,7 +166,7 @@ npm run desktop:pack
 npm run desktop:dist
 ```
 
-- `desktop:build:web`: Next.js standalone production bundle 생성
+- `desktop:build:web`: Next.js standalone production bundle 생성 + desktop standalone 리소스 준비
 - `desktop:pack`: macOS `.app` unpacked 산출물 생성 (`release/desktop/mac-arm64/MarkDeck.app`)
 - `desktop:dist`: macOS zip 배포본 생성 시도
 

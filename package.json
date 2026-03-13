@@ -6,12 +6,12 @@
   "description": "MarkDeck monorepo workspace",
   "scripts": {
     "dev": "npx pnpm --filter @markdeck/web dev",
-    "build": "npx pnpm --filter @markdeck/web build",
+    "build": "npx pnpm --filter @markdeck/desktop run build:web",
     "start": "npx pnpm --filter @markdeck/web start",
     "typecheck": "npx pnpm --filter @markdeck/web typecheck",
     "desktop:dev": "npx pnpm --filter @markdeck/desktop dev",
     "desktop:start": "npx pnpm --filter @markdeck/desktop start",
-    "desktop:build:web": "npx pnpm --filter @markdeck/web build",
+    "desktop:build:web": "npx pnpm --filter @markdeck/desktop run build:web",
     "desktop:pack": "npx pnpm --filter @markdeck/desktop run pack",
     "desktop:dist": "npx pnpm --filter @markdeck/desktop run dist"
   }
