@@ -114,6 +114,20 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
     });
   }, [contentRootKey, contentRootQuery.data, desktopRenderer, document]);
 
+  useEffect(() => {
+    if (!selectionDraft) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      restoreSelectionRange(selectionDraft.range);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [selectionDraft]);
+
   if (desktopRenderer && !contentRootQuery.isLoading && !contentRootQuery.data) {
     return <DesktopContentRootEmptyState />;
   }
@@ -145,20 +159,6 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
   };
 
   const selectionPopoverPosition = selectionDraft ? resolveSelectionPopoverPosition(selectionDraft.rect) : null;
-
-  useEffect(() => {
-    if (!selectionDraft) {
-      return;
-    }
-
-    const frameId = window.requestAnimationFrame(() => {
-      restoreSelectionRange(selectionDraft.range);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-    };
-  }, [selectionDraft]);
 
   const documentArticle = (
     <article className="card markdown-body document-card annotation-document-shell">
