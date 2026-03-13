@@ -2,7 +2,7 @@
 
 import { Search } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
 import { getDesktopHashHref } from '@/shared/lib/app-routes';
@@ -10,6 +10,7 @@ import { Button } from '@/shared/ui/button';
 import { Input } from '@/shared/ui/input';
 
 export function SearchForm() {
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const router = useRouter();
   const nextPathname = usePathname();
   const nextSearchParams = useSearchParams();
@@ -40,6 +41,20 @@ export function SearchForm() {
     setQuery(currentQuery);
   }, [currentQuery]);
 
+  useEffect(() => {
+    if (!desktop) {
+      return;
+    }
+
+    const focusSearchInput = () => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    };
+
+    window.addEventListener('markdeck:focus-search-input', focusSearchInput as EventListener);
+    return () => window.removeEventListener('markdeck:focus-search-input', focusSearchInput as EventListener);
+  }, [desktop]);
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const trimmed = query.trim();
@@ -58,6 +73,7 @@ export function SearchForm() {
   return (
     <form className="search-form" onSubmit={handleSubmit}>
       <Input
+        ref={inputRef}
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}

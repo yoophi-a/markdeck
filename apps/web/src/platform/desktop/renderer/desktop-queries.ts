@@ -7,7 +7,9 @@ import {
   chooseDesktopContentRoot as chooseDesktopContentRootFromApi,
   collectDesktopMarkdownRelativePaths,
   getDesktopContentRoot,
+  getDesktopRecentContentRoots,
   listDesktopDirectory,
+  openDesktopRecentContentRoot,
   readDesktopAsset,
   readDesktopMarkdownDocument,
   searchDesktopMarkdownDocuments,
@@ -16,6 +18,7 @@ import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
 
 export const desktopQueryKeys = {
   contentRoot: ['desktop', 'content-root'] as const,
+  recentContentRoots: ['desktop', 'recent-content-roots'] as const,
   directory: (relativePath: string) => ['desktop', 'directory', relativePath] as const,
   documentTree: (relativePath: string, depth: number) => ['desktop', 'document-tree', relativePath, depth] as const,
   document: (relativePath: string) => ['desktop', 'document', relativePath] as const,
@@ -47,6 +50,15 @@ export function useDesktopContentRootQuery(enabled = true) {
     queryKey: desktopQueryKeys.contentRoot,
     queryFn: () => getDesktopContentRoot(),
     enabled: enabled && isDesktopRenderer(),
+  });
+}
+
+export function useDesktopRecentContentRootsQuery(enabled = true) {
+  return useQuery({
+    queryKey: desktopQueryKeys.recentContentRoots,
+    queryFn: () => getDesktopRecentContentRoots(),
+    enabled: enabled && isDesktopRenderer(),
+    staleTime: Infinity,
   });
 }
 
@@ -142,9 +154,10 @@ function writePersistedItems<T>(storageKey: string, items: T[]) {
   window.localStorage.setItem(storageKey, JSON.stringify(items));
 }
 
-function invalidateDesktopContentQueries(queryClient: ReturnType<typeof useQueryClient>) {
+export function invalidateDesktopContentQueries(queryClient: ReturnType<typeof useQueryClient>) {
   return Promise.all([
     queryClient.invalidateQueries({ queryKey: desktopQueryKeys.contentRoot }),
+    queryClient.invalidateQueries({ queryKey: desktopQueryKeys.recentContentRoots }),
     queryClient.invalidateQueries({ queryKey: ['desktop', 'directory'] }),
     queryClient.invalidateQueries({ queryKey: ['desktop', 'document-tree'] }),
     queryClient.invalidateQueries({ queryKey: ['desktop', 'document-page'] }),
@@ -233,6 +246,18 @@ export function useChooseDesktopContentRootMutation() {
 
   return useMutation({
     mutationFn: () => chooseDesktopContentRootFromApi(),
+    onSuccess: async (nextRoot) => {
+      queryClient.setQueryData(desktopQueryKeys.contentRoot, nextRoot);
+      await invalidateDesktopContentQueries(queryClient);
+    },
+  });
+}
+
+export function useOpenDesktopRecentContentRootMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (contentRoot: string) => openDesktopRecentContentRoot(contentRoot),
     onSuccess: async (nextRoot) => {
       queryClient.setQueryData(desktopQueryKeys.contentRoot, nextRoot);
       await invalidateDesktopContentQueries(queryClient);

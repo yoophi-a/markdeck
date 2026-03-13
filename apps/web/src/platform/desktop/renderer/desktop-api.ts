@@ -1,6 +1,24 @@
 import type { AssetPayload, BrowserEntry, DocumentTreeNode, MarkdownDocument, SearchResult } from '@/shared/lib/content-types';
 import { DesktopApiError, type DesktopApiResult } from '@/shared/lib/desktop-contract';
 
+export interface DesktopContentInvalidationEvent {
+  relativePath: string | null;
+  reason: string;
+  contentRoot: string | null;
+  changedAt: string;
+}
+
+export interface DesktopContentRootChangedEvent {
+  contentRoot: string | null;
+  recentContentRoots: string[];
+}
+
+export interface DesktopCommandEvent {
+  command: string;
+  payload?: unknown;
+  issuedAt: string;
+}
+
 function getDesktopApi() {
   return window.markdeckDesktop;
 }
@@ -27,8 +45,16 @@ export function getDesktopContentRoot() {
   return unwrapDesktopResult(getDesktopApi()?.getContentRoot(), null);
 }
 
+export function getDesktopRecentContentRoots() {
+  return unwrapDesktopResult(getDesktopApi()?.getRecentContentRoots(), [] as string[]);
+}
+
 export function chooseDesktopContentRoot() {
   return unwrapDesktopResult(getDesktopApi()?.chooseContentRoot(), null);
+}
+
+export function openDesktopRecentContentRoot(contentRoot: string) {
+  return unwrapDesktopResult(getDesktopApi()?.openRecentContentRoot(contentRoot), null);
 }
 
 export function listDesktopDirectory(relativePath = ''): Promise<BrowserEntry[]> {
@@ -53,4 +79,28 @@ export function searchDesktopMarkdownDocuments(query: string): Promise<SearchRes
 
 export function readDesktopAsset(relativePath: string): Promise<AssetPayload | null> {
   return unwrapDesktopResult(getDesktopApi()?.readAsset(relativePath), null);
+}
+
+export function executeDesktopCommand(command: string, payload: unknown = null) {
+  return unwrapDesktopResult(getDesktopApi()?.executeCommand(command, payload), true);
+}
+
+function subscribeDesktopEvent<T>(subscribe: ((listener: (payload: T) => void) => (() => void) | void) | undefined, listener: (payload: T) => void) {
+  if (!subscribe) {
+    return () => {};
+  }
+
+  return subscribe(listener) ?? (() => {});
+}
+
+export function onDesktopContentInvalidated(listener: (payload: DesktopContentInvalidationEvent) => void) {
+  return subscribeDesktopEvent(getDesktopApi()?.onContentInvalidated, listener);
+}
+
+export function onDesktopContentRootChanged(listener: (payload: DesktopContentRootChangedEvent) => void) {
+  return subscribeDesktopEvent(getDesktopApi()?.onContentRootChanged, listener);
+}
+
+export function onDesktopCommand(listener: (payload: DesktopCommandEvent) => void) {
+  return subscribeDesktopEvent(getDesktopApi()?.onCommand, listener);
 }

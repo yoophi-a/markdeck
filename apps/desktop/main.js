@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, dialog, ipcMain } = require('electron');
 const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
@@ -10,6 +10,8 @@ const WEB_URL = process.env.MARKDECK_WEB_URL || `http://127.0.0.1:${WEB_PORT}`;
 const isDev = !app.isPackaged;
 const configPath = path.join(app.getPath('userData'), 'markdeck-desktop.json');
 const DEFAULT_IGNORE_PATTERNS = ['.git', 'node_modules'];
+const MAX_RECENT_CONTENT_ROOTS = 8;
+const SEARCH_RESULTS_CACHE_LIMIT = 24;
 const MIME_TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
@@ -25,26 +27,82 @@ const MIME_TYPES = {
 
 let mainWindow = null;
 let webProcess = null;
+let contentWatcher = null;
+let contentWatcherReloadTimer = null;
 let desktopConfig = readConfig();
+let searchIndexPromise = null;
+let searchIndexCache = null;
+let searchResultsCache = new Map();
+let documentCache = new Map();
+let assetCache = new Map();
 
 function readConfig() {
   try {
-    return JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return normalizeConfig(JSON.parse(fs.readFileSync(configPath, 'utf8')));
   } catch {
-    return { contentRoot: process.env.MARKDECK_CONTENT_ROOT || null };
+    return normalizeConfig({ contentRoot: process.env.MARKDECK_CONTENT_ROOT || null });
   }
 }
 
+function normalizeConfig(input = {}) {
+  const contentRoot = typeof input.contentRoot === 'string' && input.contentRoot.trim() ? path.resolve(input.contentRoot) : null;
+  const recentContentRoots = Array.isArray(input.recentContentRoots)
+    ? input.recentContentRoots
+        .filter((value) => typeof value === 'string' && value.trim())
+        .map((value) => path.resolve(value))
+        .filter((value, index, values) => values.indexOf(value) === index)
+        .slice(0, MAX_RECENT_CONTENT_ROOTS)
+    : contentRoot
+      ? [contentRoot]
+      : [];
+
+  return {
+    contentRoot,
+    recentContentRoots,
+  };
+}
+
 function writeConfig(nextConfig) {
-  desktopConfig = nextConfig;
+  desktopConfig = normalizeConfig(nextConfig);
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
-  fs.writeFileSync(configPath, JSON.stringify(nextConfig, null, 2));
+  fs.writeFileSync(configPath, JSON.stringify(desktopConfig, null, 2));
+  rebuildApplicationMenu();
+}
+
+function setContentRoot(contentRoot) {
+  const normalizedRoot = contentRoot ? path.resolve(contentRoot) : null;
+  const recentContentRoots = normalizedRoot
+    ? [normalizedRoot, ...desktopConfig.recentContentRoots.filter((item) => item !== normalizedRoot)].slice(0, MAX_RECENT_CONTENT_ROOTS)
+    : desktopConfig.recentContentRoots;
+
+  writeConfig({
+    ...desktopConfig,
+    contentRoot: normalizedRoot,
+    recentContentRoots,
+  });
+
+  invalidateAllDesktopCaches();
+  restartContentWatcher();
+  emitDesktopEvent('markdeck:content-root-changed', {
+    contentRoot: normalizedRoot,
+    recentContentRoots,
+  });
 }
 
 function getConfiguredContentRoot() {
   const configuredRoot = desktopConfig.contentRoot || process.env.MARKDECK_CONTENT_ROOT || null;
-
   return configuredRoot ? path.resolve(configuredRoot) : null;
+}
+
+function getRecentContentRoots() {
+  const currentRoot = getConfiguredContentRoot();
+  const items = desktopConfig.recentContentRoots.filter((item, index, values) => values.indexOf(item) === index);
+
+  if (!currentRoot) {
+    return items;
+  }
+
+  return [currentRoot, ...items.filter((item) => item !== currentRoot)].slice(0, MAX_RECENT_CONTENT_ROOTS);
 }
 
 function getContentRoot() {
@@ -87,6 +145,11 @@ function assertSafePath(relativePath) {
   }
 
   return resolvedPath;
+}
+
+function toRelativePath(absolutePath) {
+  const contentRoot = getContentRoot();
+  return path.relative(contentRoot, absolutePath).split(path.sep).join('/');
 }
 
 function matchesPattern(entryName, pattern) {
@@ -216,9 +279,15 @@ async function readMarkdownDocument(relativePath) {
   }
 
   const absolutePath = assertSafePath(normalizedPath);
-  const [content, stats] = await Promise.all([fsp.readFile(absolutePath, 'utf8'), fsp.stat(absolutePath)]);
+  const stats = await fsp.stat(absolutePath);
+  const cached = documentCache.get(normalizedPath);
 
-  return {
+  if (cached && cached.mtimeMs === stats.mtimeMs && cached.size === stats.size) {
+    return cached.payload;
+  }
+
+  const content = await fsp.readFile(absolutePath, 'utf8');
+  const payload = {
     absolutePath,
     relativePath: normalizedPath,
     content,
@@ -226,6 +295,14 @@ async function readMarkdownDocument(relativePath) {
     size: stats.size,
     updatedAt: stats.mtime.toISOString(),
   };
+
+  documentCache.set(normalizedPath, {
+    mtimeMs: stats.mtimeMs,
+    size: stats.size,
+    payload,
+  });
+
+  return payload;
 }
 
 async function collectMarkdownFiles(directoryPath) {
@@ -251,12 +328,63 @@ async function collectMarkdownFiles(directoryPath) {
   return nestedResults.flat();
 }
 
-async function collectMarkdownRelativePaths() {
+async function buildSearchIndex() {
   const contentRoot = getContentRoot();
   const markdownFiles = await collectMarkdownFiles(contentRoot);
-  return markdownFiles
-    .map((filePath) => path.relative(contentRoot, filePath).split(path.sep).join('/'))
-    .sort((a, b) => a.localeCompare(b));
+  const documents = await Promise.all(
+    markdownFiles.map(async (filePath) => {
+      const relativePath = path.relative(contentRoot, filePath).split(path.sep).join('/');
+      const [content, stats] = await Promise.all([fsp.readFile(filePath, 'utf8'), fsp.stat(filePath)]);
+      const title = extractTitle(relativePath, content);
+
+      return {
+        relativePath,
+        title,
+        content,
+        contentLower: `${relativePath}\n${title}\n${content}`.toLowerCase(),
+        size: stats.size,
+        updatedAt: stats.mtime.toISOString(),
+        mtimeMs: stats.mtimeMs,
+      };
+    })
+  );
+
+  documents.sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+
+  return {
+    contentRoot,
+    documents,
+    markdownRelativePaths: documents.map((document) => document.relativePath),
+    generatedAt: new Date().toISOString(),
+  };
+}
+
+async function ensureSearchIndex() {
+  const contentRoot = getContentRoot();
+
+  if (searchIndexCache && searchIndexCache.contentRoot === contentRoot) {
+    return searchIndexCache;
+  }
+
+  if (!searchIndexPromise) {
+    searchIndexPromise = buildSearchIndex()
+      .then((index) => {
+        searchIndexCache = index;
+        searchIndexPromise = null;
+        return index;
+      })
+      .catch((error) => {
+        searchIndexPromise = null;
+        throw error;
+      });
+  }
+
+  return searchIndexPromise;
+}
+
+async function collectMarkdownRelativePaths() {
+  const index = await ensureSearchIndex();
+  return [...index.markdownRelativePaths];
 }
 
 async function searchMarkdownDocuments(query) {
@@ -266,44 +394,60 @@ async function searchMarkdownDocuments(query) {
     return [];
   }
 
-  const contentRoot = getContentRoot();
-  const markdownFiles = await collectMarkdownFiles(contentRoot);
-  const results = await Promise.all(
-    markdownFiles.map(async (filePath) => {
-      const relativePath = path.relative(contentRoot, filePath).split(path.sep).join('/');
-      const [content, stats] = await Promise.all([fsp.readFile(filePath, 'utf8'), fsp.stat(filePath)]);
-      const title = extractTitle(relativePath, content);
-      const haystack = `${relativePath}\n${title}\n${content}`.toLowerCase();
+  const cacheKey = `${getContentRoot()}::${normalizedQuery}`;
+  const cached = searchResultsCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
 
-      if (!haystack.includes(normalizedQuery)) {
-        return null;
-      }
+  const index = await ensureSearchIndex();
+  const results = index.documents
+    .filter((document) => document.contentLower.includes(normalizedQuery))
+    .map((document) => ({
+      relativePath: document.relativePath,
+      title: document.title,
+      snippet: buildSnippet(document.content, normalizedQuery),
+      size: document.size,
+      updatedAt: document.updatedAt,
+    }));
 
-      return {
-        relativePath,
-        title,
-        snippet: buildSnippet(content, normalizedQuery),
-        size: stats.size,
-        updatedAt: stats.mtime.toISOString(),
-      };
-    })
-  );
+  searchResultsCache.set(cacheKey, results);
+  if (searchResultsCache.size > SEARCH_RESULTS_CACHE_LIMIT) {
+    const firstKey = searchResultsCache.keys().next().value;
+    if (firstKey) {
+      searchResultsCache.delete(firstKey);
+    }
+  }
 
-  return results.filter(Boolean).sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+  return results;
 }
 
 async function readAsset(relativePath) {
   const normalizedPath = normalizeRelativePath(relativePath);
   const absolutePath = assertSafePath(normalizedPath);
-  const [buffer, stats] = await Promise.all([fsp.readFile(absolutePath), fsp.stat(absolutePath)]);
-  const extension = path.extname(absolutePath).toLowerCase();
+  const stats = await fsp.stat(absolutePath);
+  const cached = assetCache.get(normalizedPath);
 
-  return {
+  if (cached && cached.mtimeMs === stats.mtimeMs && cached.size === stats.size) {
+    return cached.payload;
+  }
+
+  const buffer = await fsp.readFile(absolutePath);
+  const extension = path.extname(absolutePath).toLowerCase();
+  const payload = {
     relativePath: normalizedPath,
     contentType: MIME_TYPES[extension] || 'application/octet-stream',
     dataBase64: buffer.toString('base64'),
     size: stats.size,
   };
+
+  assetCache.set(normalizedPath, {
+    mtimeMs: stats.mtimeMs,
+    size: stats.size,
+    payload,
+  });
+
+  return payload;
 }
 
 function buildSnippet(content, normalizedQuery) {
@@ -320,6 +464,110 @@ function buildSnippet(content, normalizedQuery) {
   const suffix = end < compact.length ? '…' : '';
 
   return `${prefix}${compact.slice(start, end)}${suffix}`;
+}
+
+function invalidateAllDesktopCaches() {
+  searchIndexCache = null;
+  searchIndexPromise = null;
+  searchResultsCache = new Map();
+  documentCache = new Map();
+  assetCache = new Map();
+}
+
+function invalidateContentCachesForPath(relativePath = null) {
+  if (!relativePath) {
+    invalidateAllDesktopCaches();
+    return;
+  }
+
+  const normalizedPath = normalizeRelativePath(relativePath);
+  const normalizedDirectoryPrefix = normalizedPath ? `${normalizedPath}/` : '';
+  const isMarkdown = normalizedPath.toLowerCase().endsWith('.md');
+
+  if (isMarkdown) {
+    documentCache.delete(normalizedPath);
+  }
+
+  assetCache.delete(normalizedPath);
+
+  if (!searchIndexCache) {
+    searchResultsCache = new Map();
+    return;
+  }
+
+  const shouldRebuildSearchIndex =
+    !normalizedPath ||
+    isMarkdown ||
+    searchIndexCache.markdownRelativePaths.some((item) => item === normalizedPath || item.startsWith(normalizedDirectoryPrefix));
+
+  if (shouldRebuildSearchIndex) {
+    searchIndexCache = null;
+  }
+
+  searchResultsCache = new Map();
+}
+
+function emitDesktopEvent(channel, payload) {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  mainWindow.webContents.send(channel, payload);
+}
+
+function emitContentInvalidated(relativePath = null, reason = 'unknown') {
+  invalidateContentCachesForPath(relativePath);
+  emitDesktopEvent('markdeck:content-invalidated', {
+    relativePath,
+    reason,
+    contentRoot: getConfiguredContentRoot(),
+    changedAt: new Date().toISOString(),
+  });
+}
+
+function scheduleContentReload(relativePath, reason) {
+  if (contentWatcherReloadTimer) {
+    clearTimeout(contentWatcherReloadTimer);
+  }
+
+  contentWatcherReloadTimer = setTimeout(() => {
+    emitContentInvalidated(relativePath, reason);
+  }, 180);
+}
+
+function closeContentWatcher() {
+  if (contentWatcher) {
+    contentWatcher.close();
+    contentWatcher = null;
+  }
+
+  if (contentWatcherReloadTimer) {
+    clearTimeout(contentWatcherReloadTimer);
+    contentWatcherReloadTimer = null;
+  }
+}
+
+function restartContentWatcher() {
+  closeContentWatcher();
+
+  const contentRoot = getConfiguredContentRoot();
+  if (!contentRoot || !fs.existsSync(contentRoot)) {
+    return;
+  }
+
+  try {
+    contentWatcher = fs.watch(contentRoot, { recursive: true }, (_eventType, filename) => {
+      const relativePath = typeof filename === 'string' && filename.trim() ? normalizeRelativePath(filename) : null;
+      scheduleContentReload(relativePath, 'watcher');
+    });
+
+    contentWatcher.on('error', () => {
+      scheduleContentReload(null, 'watcher-error');
+      restartContentWatcher();
+    });
+  } catch {
+    contentWatcher = null;
+  }
 }
 
 function toDesktopError(error) {
@@ -368,6 +616,10 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
     },
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
   });
 }
 
@@ -448,8 +700,7 @@ async function loadApp() {
   await mainWindow.loadURL(`${url}/desktop#/`);
 }
 
-handleDesktopIpc('markdeck:get-content-root', () => getConfiguredContentRoot());
-handleDesktopIpc('markdeck:choose-content-root', async () => {
+async function chooseContentRoot() {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
     defaultPath: desktopConfig.contentRoot || undefined,
@@ -460,17 +711,199 @@ handleDesktopIpc('markdeck:choose-content-root', async () => {
   }
 
   const contentRoot = result.filePaths[0];
-  writeConfig({ ...desktopConfig, contentRoot });
+  setContentRoot(contentRoot);
   return contentRoot;
-});
+}
+
+function openRecentContentRoot(contentRoot) {
+  if (!contentRoot) {
+    return desktopConfig.contentRoot;
+  }
+
+  if (!fs.existsSync(contentRoot)) {
+    desktopConfig.recentContentRoots = desktopConfig.recentContentRoots.filter((item) => item !== contentRoot);
+    writeConfig(desktopConfig);
+    const error = new Error('파일이나 폴더를 찾을 수 없습니다.');
+    error.code = 'ENOENT';
+    throw error;
+  }
+
+  setContentRoot(contentRoot);
+  return contentRoot;
+}
+
+function focusMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) {
+    return;
+  }
+
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore();
+  }
+
+  mainWindow.focus();
+}
+
+function sendDesktopCommand(command, payload = null) {
+  focusMainWindow();
+  emitDesktopEvent('markdeck:command', {
+    command,
+    payload,
+    issuedAt: new Date().toISOString(),
+  });
+}
+
+async function executeDesktopCommand(command, payload = null) {
+  switch (command) {
+    case 'open-content-root':
+      return chooseContentRoot();
+    case 'open-recent-content-root':
+      return openRecentContentRoot(payload?.contentRoot || payload);
+    case 'reload-content':
+      emitContentInvalidated(null, 'manual-refresh');
+      return true;
+    case 'go-home':
+    case 'go-browse':
+    case 'go-search':
+    case 'focus-search':
+    case 'go-back':
+    case 'go-forward':
+    case 'toggle-theme':
+    case 'toggle-command-palette':
+      sendDesktopCommand(command, payload);
+      return true;
+    default:
+      throw new TypeError(`Unknown desktop command: ${command}`);
+  }
+}
+
+function buildRecentFoldersSubmenu() {
+  const recentFolders = getRecentContentRoots();
+
+  if (recentFolders.length === 0) {
+    return [{ label: '최근 폴더 없음', enabled: false }];
+  }
+
+  return recentFolders.map((contentRoot) => ({
+    label: contentRoot,
+    click: () => void openRecentContentRoot(contentRoot),
+  }));
+}
+
+function rebuildApplicationMenu() {
+  const template = [
+    {
+      label: 'MarkDeck',
+      submenu: [
+        { role: 'about' },
+        { type: 'separator' },
+        {
+          label: 'Command Palette',
+          accelerator: 'CmdOrCtrl+Shift+P',
+          click: () => void executeDesktopCommand('toggle-command-palette'),
+        },
+        { type: 'separator' },
+        { role: 'services' },
+        { type: 'separator' },
+        { role: 'hide' },
+        { role: 'hideOthers' },
+        { role: 'unhide' },
+        { type: 'separator' },
+        { role: 'quit' },
+      ],
+    },
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Open Folder…',
+          accelerator: 'CmdOrCtrl+O',
+          click: () => void executeDesktopCommand('open-content-root'),
+        },
+        {
+          label: 'Open Recent',
+          submenu: buildRecentFoldersSubmenu(),
+        },
+        { type: 'separator' },
+        {
+          label: 'Refresh Content',
+          accelerator: 'CmdOrCtrl+R',
+          click: () => void executeDesktopCommand('reload-content'),
+        },
+      ],
+    },
+    {
+      label: 'Navigate',
+      submenu: [
+        {
+          label: 'Home',
+          accelerator: 'CmdOrCtrl+1',
+          click: () => void executeDesktopCommand('go-home'),
+        },
+        {
+          label: 'Browse',
+          accelerator: 'CmdOrCtrl+2',
+          click: () => void executeDesktopCommand('go-browse'),
+        },
+        {
+          label: 'Search',
+          accelerator: 'CmdOrCtrl+3',
+          click: () => void executeDesktopCommand('go-search'),
+        },
+        { type: 'separator' },
+        {
+          label: 'Back',
+          accelerator: 'Alt+Left',
+          click: () => void executeDesktopCommand('go-back'),
+        },
+        {
+          label: 'Forward',
+          accelerator: 'Alt+Right',
+          click: () => void executeDesktopCommand('go-forward'),
+        },
+        {
+          label: 'Focus Search',
+          accelerator: 'CmdOrCtrl+K',
+          click: () => void executeDesktopCommand('focus-search'),
+        },
+      ],
+    },
+    {
+      label: 'View',
+      submenu: [
+        {
+          label: 'Toggle Theme',
+          accelerator: 'CmdOrCtrl+Shift+L',
+          click: () => void executeDesktopCommand('toggle-theme'),
+        },
+        { role: 'togglefullscreen' },
+        ...(isDev ? [{ role: 'toggleDevTools' }] : []),
+      ],
+    },
+    {
+      label: 'Window',
+      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { role: 'front' }],
+    },
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+handleDesktopIpc('markdeck:get-content-root', () => getConfiguredContentRoot());
+handleDesktopIpc('markdeck:get-recent-content-roots', () => getRecentContentRoots());
+handleDesktopIpc('markdeck:choose-content-root', chooseContentRoot);
+handleDesktopIpc('markdeck:open-recent-content-root', (contentRoot) => openRecentContentRoot(contentRoot));
 handleDesktopIpc('markdeck:list-directory', (relativePath = '') => listDirectory(relativePath));
 handleDesktopIpc('markdeck:build-document-tree', (relativePath = '', depth = 2) => buildDocumentTree(relativePath, depth));
 handleDesktopIpc('markdeck:read-markdown-document', (relativePath) => readMarkdownDocument(relativePath));
 handleDesktopIpc('markdeck:collect-markdown-relative-paths', () => collectMarkdownRelativePaths());
 handleDesktopIpc('markdeck:search-markdown-documents', (query) => searchMarkdownDocuments(query));
 handleDesktopIpc('markdeck:read-asset', (relativePath) => readAsset(relativePath));
+handleDesktopIpc('markdeck:execute-command', (command, payload = null) => executeDesktopCommand(command, payload));
 
 app.whenReady().then(async () => {
+  rebuildApplicationMenu();
+  restartContentWatcher();
   createWindow();
   await loadApp();
 
@@ -489,6 +922,8 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  closeContentWatcher();
+
   if (webProcess) {
     webProcess.kill();
   }

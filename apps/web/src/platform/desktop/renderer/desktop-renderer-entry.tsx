@@ -1,17 +1,7 @@
 'use client';
 
-import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
-import { DesktopErrorBoundary } from '@/platform/desktop/renderer/desktop-error-boundary';
-import { DesktopRendererRouter } from '@/platform/desktop/renderer/desktop-router';
+import { DesktopShell } from '@/platform/desktop/renderer/desktop-shell';
 
 export function DesktopRendererEntry() {
-  if (!isDesktopRenderer()) {
-    return null;
-  }
-
-  return (
-    <DesktopErrorBoundary>
-      <DesktopRendererRouter />
-    </DesktopErrorBoundary>
-  );
+  return <DesktopShell />;
 }

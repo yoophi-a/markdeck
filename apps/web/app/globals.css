@@ -710,6 +710,86 @@ code {
   border-radius: 10px;
 }
 
+.workspace-root-list,
+.command-palette-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.workspace-root-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.workspace-root-button,
+.command-palette-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line);
+  background: var(--list-bg);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workspace-root-button:hover,
+.command-palette-item:hover {
+  background: var(--panel-2);
+}
+
+.workspace-root-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.command-palette-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 72px 20px 20px;
+  z-index: 50;
+}
+
+.command-palette {
+  width: min(720px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 14px;
+}
+
+.command-palette-input {
+  min-width: 0;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.command-palette-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.command-palette-item {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.command-palette-empty {
+  padding: 10px 4px;
+}
+
 @media (max-width: 1180px) {
   .document-layout.with-tree {
     grid-template-columns: minmax(0, 1fr) 280px;

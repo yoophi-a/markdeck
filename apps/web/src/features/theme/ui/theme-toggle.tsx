@@ -22,6 +22,20 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    const handleToggle = () => {
+      setTheme((currentTheme) => {
+        const nextTheme: ThemeMode = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = nextTheme;
+        window.localStorage.setItem(STORAGE_KEY, nextTheme);
+        return nextTheme;
+      });
+    };
+
+    window.addEventListener('markdeck:toggle-theme', handleToggle as EventListener);
+    return () => window.removeEventListener('markdeck:toggle-theme', handleToggle as EventListener);
+  }, []);
+
   function handleToggle() {
     const nextTheme: ThemeMode = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
