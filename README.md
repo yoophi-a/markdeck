@@ -155,7 +155,7 @@ npm start
 npm run desktop:dev
 ```
 
-Electron desktop 앱은 개발 모드에서 `apps/web`의 Next.js 서버를 자동으로 띄운 뒤, 해당 URL을 로드합니다.
+Electron desktop 앱은 개발 모드에서 `apps/web`의 Next.js 서버를 자동으로 띄운 뒤, 해당 URL을 로드합니다. content root가 아직 설정되지 않았으면 현재 작업 디렉터리를 암묵적으로 쓰지 않고, 폴더 선택 UI를 먼저 보여줍니다.
 
 ### 6) Build and package desktop app
 

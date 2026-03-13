@@ -41,8 +41,22 @@ function writeConfig(nextConfig) {
   fs.writeFileSync(configPath, JSON.stringify(nextConfig, null, 2));
 }
 
+function getConfiguredContentRoot() {
+  const configuredRoot = desktopConfig.contentRoot || process.env.MARKDECK_CONTENT_ROOT || null;
+
+  return configuredRoot ? path.resolve(configuredRoot) : null;
+}
+
 function getContentRoot() {
-  return path.resolve(desktopConfig.contentRoot || process.env.MARKDECK_CONTENT_ROOT || process.cwd());
+  const contentRoot = getConfiguredContentRoot();
+
+  if (!contentRoot) {
+    const error = new Error('Content root is not configured');
+    error.code = 'CONTENT_ROOT_NOT_SET';
+    throw error;
+  }
+
+  return contentRoot;
 }
 
 function getIgnorePatterns() {
@@ -313,6 +327,10 @@ function toDesktopError(error) {
     return { code: 'UNSAFE_PATH', message: error.message };
   }
 
+  if (error?.code === 'CONTENT_ROOT_NOT_SET') {
+    return { code: 'CONTENT_ROOT_NOT_SET', message: '읽을 문서 폴더를 먼저 선택해 주세요.' };
+  }
+
   if (error?.code === 'ENOENT') {
     return { code: 'NOT_FOUND', message: '파일이나 폴더를 찾을 수 없습니다.' };
   }
@@ -430,7 +448,7 @@ async function loadApp() {
   await mainWindow.loadURL(`${url}/desktop#/`);
 }
 
-handleDesktopIpc('markdeck:get-content-root', () => desktopConfig.contentRoot);
+handleDesktopIpc('markdeck:get-content-root', () => getConfiguredContentRoot());
 handleDesktopIpc('markdeck:choose-content-root', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],

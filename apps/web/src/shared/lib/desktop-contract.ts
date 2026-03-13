@@ -4,7 +4,8 @@ export type DesktopErrorCode =
   | 'NOT_FOUND'
   | 'PERMISSION_DENIED'
   | 'INVALID_INPUT'
-  | 'IPC_UNAVAILABLE';
+  | 'IPC_UNAVAILABLE'
+  | 'CONTENT_ROOT_NOT_SET';
 
 export interface DesktopApiErrorPayload {
   code: DesktopErrorCode;
