@@ -204,13 +204,13 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], o
               {children}
             </Block>
           ),
-          code: ({ className, children, ...props }) => {
+          code: ({ className, children }) => {
             const language = className?.replace('language-', '').trim();
             const code = extractCodeText(children).replace(/\n$/, '');
             const isInline = !className && !code.includes('\n');
 
             if (isInline) {
-              return <code className={className} {...props}>{children}</code>;
+              return <code className={className}>{children}</code>;
             }
 
             if (language === 'mermaid') {
@@ -397,60 +397,52 @@ function wrapRangeContents(range: Range, wrapper: HTMLElement) {
 }
 
 function locateTextRange(block: HTMLElement, anchor: AnnotationTextAnchor) {
-  const target = findQuotedTextRange(normalizeWhitespace(block.innerText), anchor);
+  const normalizedText = normalizeWhitespace(block.innerText);
+  const target = findQuotedTextRange(normalizedText, anchor);
   if (!target) {
     return null;
   }
 
-  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
-  let seen = 0;
-  let startNode: Text | null = null;
-  let endNode: Text | null = null;
-  let startOffset = 0;
-  let endOffset = 0;
-
-  while (walker.nextNode()) {
-    const node = walker.currentNode as Text;
-    const text = node.textContent ?? '';
-    for (let index = 0; index < text.length; index += 1) {
-      const char = text[index];
-      if (/\s/.test(char)) {
-        if (seen > 0 && /\s/.test(normalizeWhitespace(block.innerText).charAt(Math.min(seen, normalizeWhitespace(block.innerText).length - 1)))) {
-          continue;
-        }
-      }
-
-      if (seen === target.start) {
-        startNode = node;
-        startOffset = index;
-      }
-
-      if (seen === target.end) {
-        endNode = node;
-        endOffset = index;
-        break;
-      }
-
-      seen += 1;
-    }
-
-    if (startNode && !endNode && seen === target.end) {
-      endNode = node;
-      endOffset = text.length;
-      break;
-    }
-
-    if (startNode && endNode) {
-      break;
-    }
-  }
-
-  if (!startNode) {
+  const mapping = buildNormalizedTextMapping(block);
+  const startPoint = mapping[target.start];
+  const endPoint = mapping[target.end - 1];
+  if (!startPoint || !endPoint) {
     return null;
   }
 
   const range = document.createRange();
-  range.setStart(startNode, startOffset);
-  range.setEnd(endNode ?? startNode, endNode ? endOffset : startNode.textContent?.length ?? startOffset);
+  range.setStart(startPoint.node, startPoint.offset);
+  range.setEnd(endPoint.node, endPoint.offset + 1);
   return range;
+}
+
+function buildNormalizedTextMapping(block: HTMLElement) {
+  const walker = document.createTreeWalker(block, NodeFilter.SHOW_TEXT);
+  const points: Array<{ node: Text; offset: number }> = [];
+  let lastWasWhitespace = false;
+
+  while (walker.nextNode()) {
+    const node = walker.currentNode as Text;
+    const text = node.textContent ?? '';
+
+    for (let index = 0; index < text.length; index += 1) {
+      const char = text[index];
+      const isWhitespace = /\s/.test(char);
+
+      if (isWhitespace) {
+        if (lastWasWhitespace) {
+          continue;
+        }
+
+        points.push({ node, offset: index });
+        lastWasWhitespace = true;
+        continue;
+      }
+
+      points.push({ node, offset: index });
+      lastWasWhitespace = false;
+    }
+  }
+
+  return points;
 }
