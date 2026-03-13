@@ -2,14 +2,16 @@
 
 import { HashRouter } from 'react-router-dom';
 
-import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
 import { DesktopCommandPalette } from '@/platform/desktop/renderer/desktop-command-palette';
 import { DesktopErrorBoundary } from '@/platform/desktop/renderer/desktop-error-boundary';
 import { DesktopEventBridge } from '@/platform/desktop/renderer/desktop-event-bridge';
 import { DesktopRendererRouterBody } from '@/platform/desktop/renderer/desktop-router';
+import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 
 export function DesktopShell() {
-  if (!isDesktopRenderer()) {
+  const desktopRenderer = useDesktopRenderer();
+
+  if (!desktopRenderer) {
     return null;
   }
 
