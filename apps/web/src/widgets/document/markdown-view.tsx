@@ -1,6 +1,6 @@
 'use client';
 
-import { ScissorsLineDashed } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -258,7 +258,7 @@ function Block({
           }}
           title={deleted ? '삭제 표시 해제' : '이 문단 삭제 표시'}
         >
-          <ScissorsLineDashed className="size-3.5" />
+          <Trash2 className="size-3.5" />
         </Button>
       ) : null}
       {children}
@@ -382,8 +382,18 @@ function applyTextAnnotation(block: HTMLElement, annotationId: string, anchor: A
   try {
     range.surroundContents(mark);
   } catch {
-    // cross-node selection edge cases are skipped in the minimal draft renderer
+    wrapRangeContents(range, mark);
   }
+}
+
+function wrapRangeContents(range: Range, wrapper: HTMLElement) {
+  const extracted = range.extractContents();
+  if (!extracted.textContent?.trim()) {
+    return;
+  }
+
+  wrapper.appendChild(extracted);
+  range.insertNode(wrapper);
 }
 
 function locateTextRange(block: HTMLElement, anchor: AnnotationTextAnchor) {
