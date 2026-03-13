@@ -58,7 +58,7 @@ export function MarkdownView({
     const next = new Map<string, CommentAnnotation[]>();
 
     annotations.forEach((annotation) => {
-      if (annotation.kind !== 'comment' || annotation.anchor.kind !== 'text-range') {
+      if (annotation.kind !== 'comment') {
         return;
       }
 
@@ -79,7 +79,7 @@ export function MarkdownView({
     cleanupAnnotationMarks(container);
 
     if (activeSelection) {
-      const activeBlock = container.querySelector<HTMLElement>(`[data-annotation-block-id="${activeSelection.blockId}"]`);
+      const activeBlock = getBlockContentById(container, activeSelection.blockId);
       if (activeBlock) {
         applyTemporarySelectionMark(activeBlock, activeSelection);
       }
@@ -87,7 +87,7 @@ export function MarkdownView({
 
     annotations.forEach((annotation) => {
       if (annotation.anchor.kind === 'block' && annotation.kind === 'deletion') {
-        const block = container.querySelector<HTMLElement>(`[data-annotation-block-id="${annotation.anchor.blockId}"]`);
+        const block = getBlockShellById(container, annotation.anchor.blockId);
         if (block) {
           block.dataset.annotationDeleted = 'true';
         }
@@ -98,7 +98,7 @@ export function MarkdownView({
         return;
       }
 
-      const block = container.querySelector<HTMLElement>(`[data-annotation-block-id="${annotation.anchor.blockId}"]`);
+      const block = getBlockContentById(container, annotation.anchor.blockId);
       if (!block) {
         return;
       }
@@ -137,7 +137,7 @@ export function MarkdownView({
     }
 
     const text = normalizeWhitespace(selection.toString());
-    const blockText = normalizeWhitespace(block.innerText);
+    const blockText = normalizeWhitespace(getBlockText(block));
     if (!text || !blockText.includes(text)) {
       onSelectionChange(null);
       return;
@@ -378,9 +378,28 @@ function Block({
   const blockId = createHeadingIdFromText(text);
   const blockText = normalizeWhitespace(text);
   const Tag = levelTag;
+  const content = <Tag className="annotation-block-content">{children}</Tag>;
+
+  if (levelTag === 'li') {
+    return (
+      <li className="annotation-block" data-annotation-block-id={blockId} data-annotation-deleted={deleted ? 'true' : undefined}>
+        <BlockCommentPreview comments={comments} />
+        <BlockQuickActions
+          blockId={blockId}
+          blockText={blockText}
+          deleted={deleted}
+          deleteTitle="이 문단 삭제 표시"
+          onToggleDeletion={onToggleDeletion}
+          onAddBlockHighlight={onAddBlockHighlight}
+          onAddBlockComment={onAddBlockComment}
+        />
+        <div className="annotation-block-content">{children}</div>
+      </li>
+    );
+  }
 
   return (
-    <Tag className="annotation-block" data-annotation-block-id={blockId} data-annotation-deleted={deleted ? 'true' : undefined}>
+    <div className="annotation-block" data-annotation-block-id={blockId} data-annotation-deleted={deleted ? 'true' : undefined}>
       <BlockCommentPreview comments={comments} />
       <BlockQuickActions
         blockId={blockId}
@@ -391,8 +410,8 @@ function Block({
         onAddBlockHighlight={onAddBlockHighlight}
         onAddBlockComment={onAddBlockComment}
       />
-      {children}
-    </Tag>
+      {content}
+    </div>
   );
 }
 
@@ -422,7 +441,7 @@ function Heading({
   const blockText = normalizeWhitespace(text);
 
   return (
-    <Tag id={id} className="annotation-block" data-annotation-block-id={blockId} data-annotation-deleted={deleted ? 'true' : undefined}>
+    <div className="annotation-block" data-annotation-block-id={blockId} data-annotation-deleted={deleted ? 'true' : undefined}>
       <BlockCommentPreview comments={comments} />
       <BlockQuickActions
         blockId={blockId}
@@ -433,11 +452,13 @@ function Heading({
         onAddBlockHighlight={onAddBlockHighlight}
         onAddBlockComment={onAddBlockComment}
       />
-      <a href={`#${id}`} className="heading-anchor">
-        <span className="heading-anchor-mark">#</span>
-      </a>
-      {children}
-    </Tag>
+      <Tag id={id} className="annotation-block-content">
+        <a href={`#${id}`} className="heading-anchor">
+          <span className="heading-anchor-mark">#</span>
+        </a>
+        {children}
+      </Tag>
+    </div>
   );
 }
 
@@ -645,6 +666,23 @@ function getClosestBlock(node: Node) {
   return node.parentElement?.closest<HTMLElement>('[data-annotation-block-id]') ?? null;
 }
 
+function getBlockShellById(container: HTMLElement, blockId: string) {
+  return container.querySelector<HTMLElement>(`[data-annotation-block-id="${blockId}"]`);
+}
+
+function getBlockContentById(container: HTMLElement, blockId: string) {
+  const block = getBlockShellById(container, blockId);
+  return block ? getBlockContentElement(block) : null;
+}
+
+function getBlockContentElement(block: HTMLElement) {
+  return block.querySelector<HTMLElement>('.annotation-block-content') ?? block;
+}
+
+function getBlockText(block: HTMLElement) {
+  return getBlockContentElement(block).innerText;
+}
+
 function buildSelectionContext(blockText: string, quote: string, occurrence: number) {
   let fromIndex = 0;
   let index = -1;
@@ -668,7 +706,7 @@ function buildSelectionContext(blockText: string, quote: string, occurrence: num
 
 function countTextOccurrences(blockText: string, quote: string, range: Range, block: HTMLElement) {
   const preRange = document.createRange();
-  preRange.selectNodeContents(block);
+  preRange.selectNodeContents(getBlockContentElement(block));
   preRange.setEnd(range.startContainer, range.startOffset);
   const beforeText = normalizeWhitespace(preRange.toString());
   let occurrence = 0;
