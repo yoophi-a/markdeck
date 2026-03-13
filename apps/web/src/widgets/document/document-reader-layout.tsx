@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutPanelLeft, ListTree, Maximize2, Minimize2 } from 'lucide-react';
+import { LayoutPanelLeft, ListTree, Maximize2, Minimize2, PanelLeftClose, PanelRightClose } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { cn } from '@/shared/lib/utils';
@@ -10,6 +10,8 @@ interface ReaderLayoutSettings {
   showTree: boolean;
   showToc: boolean;
   isDocumentMaximized: boolean;
+  treeWidth: number;
+  tocWidth: number;
 }
 
 interface DocumentReaderLayoutProps {
@@ -20,10 +22,14 @@ interface DocumentReaderLayoutProps {
 }
 
 const STORAGE_KEY = 'markdeck:reader-layout';
+const MIN_PANEL_WIDTH = 220;
+const MAX_PANEL_WIDTH = 420;
 const DEFAULT_SETTINGS: ReaderLayoutSettings = {
   showTree: true,
   showToc: true,
   isDocumentMaximized: false,
+  treeWidth: 280,
+  tocWidth: 280,
 };
 
 export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }: DocumentReaderLayoutProps) {
@@ -64,12 +70,29 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }:
       classNames.push('with-tree');
     }
 
+    if (settings.showTree) {
+      classNames.push('has-tree');
+    }
+
+    if (settings.showToc) {
+      classNames.push('has-toc');
+    }
+
     if (settings.isDocumentMaximized) {
       classNames.push('is-maximized');
     }
 
     return classNames.join(' ');
   }, [settings.isDocumentMaximized, settings.showToc, settings.showTree]);
+
+  const layoutStyle = useMemo(
+    () =>
+      ({
+        '--document-tree-width': `${settings.treeWidth}px`,
+        '--document-toc-width': `${settings.tocWidth}px`,
+      }) as React.CSSProperties,
+    [settings.tocWidth, settings.treeWidth]
+  );
 
   return (
     <>
@@ -102,7 +125,7 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }:
         </div>
       ) : null}
 
-      <div className={layoutClassName}>
+      <div className={layoutClassName} style={layoutStyle}>
         {settings.isDocumentMaximized ? (
           <div className={cn('document-maximized-shell', 'stack')}>
             <Button
@@ -121,13 +144,88 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }:
         ) : (
           <>
             {settings.showTree ? <div className="document-tree-side stack">{tree}</div> : null}
+            {settings.showTree ? (
+              <ResizeHandle
+                ariaLabel="좌측 패널 너비 조절"
+                title="트리 너비 조절"
+                onResize={(deltaX) => {
+                  setSettings((current) => ({
+                    ...current,
+                    treeWidth: clampPanelWidth(current.treeWidth + deltaX),
+                  }));
+                }}
+              />
+            ) : null}
             <div className="document-main stack">{document}</div>
+            {settings.showToc ? (
+              <ResizeHandle
+                ariaLabel="우측 패널 너비 조절"
+                title="목차 너비 조절"
+                onResize={(deltaX) => {
+                  setSettings((current) => ({
+                    ...current,
+                    tocWidth: clampPanelWidth(current.tocWidth - deltaX),
+                  }));
+                }}
+                icon="right"
+              />
+            ) : null}
             {settings.showToc ? <div className="document-side stack">{toc}</div> : null}
           </>
         )}
       </div>
     </>
   );
+}
+
+function ResizeHandle({
+  onResize,
+  ariaLabel,
+  title,
+  icon = 'left',
+}: {
+  onResize: (deltaX: number) => void;
+  ariaLabel: string;
+  title: string;
+  icon?: 'left' | 'right';
+}) {
+  function handlePointerDown(event: React.PointerEvent<HTMLButtonElement>) {
+    if (window.innerWidth <= 1024) {
+      return;
+    }
+
+    const pointerId = event.pointerId;
+    let previousX = event.clientX;
+    event.currentTarget.setPointerCapture(pointerId);
+    document.body.classList.add('is-resizing-document-layout');
+
+    function handlePointerMove(moveEvent: PointerEvent) {
+      const deltaX = moveEvent.clientX - previousX;
+      previousX = moveEvent.clientX;
+      onResize(deltaX);
+    }
+
+    function stopDragging() {
+      document.body.classList.remove('is-resizing-document-layout');
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', stopDragging);
+      window.removeEventListener('pointercancel', stopDragging);
+    }
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', stopDragging);
+    window.addEventListener('pointercancel', stopDragging);
+  }
+
+  return (
+    <button type="button" className="document-resize-handle" onPointerDown={handlePointerDown} aria-label={ariaLabel} title={title}>
+      {icon === 'left' ? <PanelLeftClose className="size-3.5" /> : <PanelRightClose className="size-3.5" />}
+    </button>
+  );
+}
+
+function clampPanelWidth(width: number) {
+  return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, Math.round(width)));
 }
 
 function readLayoutSettings(): ReaderLayoutSettings {
@@ -146,6 +244,8 @@ function readLayoutSettings(): ReaderLayoutSettings {
       showTree: parsed.showTree ?? true,
       showToc: parsed.showToc ?? true,
       isDocumentMaximized: parsed.isDocumentMaximized ?? false,
+      treeWidth: clampPanelWidth(parsed.treeWidth ?? DEFAULT_SETTINGS.treeWidth),
+      tocWidth: clampPanelWidth(parsed.tocWidth ?? DEFAULT_SETTINGS.tocWidth),
     };
   } catch {
     return DEFAULT_SETTINGS;
