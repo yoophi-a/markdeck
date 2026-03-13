@@ -985,6 +985,22 @@ body.is-resizing-document-layout {
   white-space: nowrap;
 }
 
+.shortcut-help-dialog {
+  width: min(760px, calc(100vw - 48px));
+  max-height: min(80vh, 720px);
+  overflow: auto;
+}
+
+.shortcut-help-grid {
+  align-items: start;
+}
+
+.shortcut-help-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+}
+
 .command-palette-overlay {
   position: fixed;
   inset: 0;

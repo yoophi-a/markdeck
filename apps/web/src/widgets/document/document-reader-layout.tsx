@@ -44,24 +44,39 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }:
   }, [settings]);
 
   useEffect(() => {
-    if (!settings.isDocumentMaximized) {
-      return;
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'Escape') {
+    function handleDocumentShortcut(event: Event) {
+      if (!(event instanceof KeyboardEvent) && event.type === 'markdeck:toggle-document-tree') {
+        setSettings((current) => ({ ...current, showTree: !current.showTree }));
         return;
       }
 
-      setSettings((current) => ({ ...current, isDocumentMaximized: false }));
+      if (!(event instanceof KeyboardEvent) && event.type === 'markdeck:toggle-document-toc') {
+        setSettings((current) => ({ ...current, showToc: !current.showToc }));
+        return;
+      }
+
+      if (!(event instanceof KeyboardEvent) && event.type === 'markdeck:toggle-document-maximize') {
+        setSettings((current) => ({ ...current, isDocumentMaximized: !current.isDocumentMaximized }));
+        return;
+      }
+
+      if (event instanceof KeyboardEvent && event.key === 'Escape') {
+        setSettings((current) => ({ ...current, isDocumentMaximized: false }));
+      }
     }
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleDocumentShortcut);
+    window.addEventListener('markdeck:toggle-document-tree', handleDocumentShortcut as EventListener);
+    window.addEventListener('markdeck:toggle-document-toc', handleDocumentShortcut as EventListener);
+    window.addEventListener('markdeck:toggle-document-maximize', handleDocumentShortcut as EventListener);
 
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleDocumentShortcut);
+      window.removeEventListener('markdeck:toggle-document-tree', handleDocumentShortcut as EventListener);
+      window.removeEventListener('markdeck:toggle-document-toc', handleDocumentShortcut as EventListener);
+      window.removeEventListener('markdeck:toggle-document-maximize', handleDocumentShortcut as EventListener);
     };
-  }, [settings.isDocumentMaximized]);
+  }, []);
 
   const layoutClassName = useMemo(() => {
     const classNames = ['document-layout'];

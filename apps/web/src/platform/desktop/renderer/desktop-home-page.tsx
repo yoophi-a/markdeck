@@ -2,6 +2,7 @@
 
 import { useDesktopContentRootQuery, useDesktopRecentContentRootsQuery, useOpenDesktopRecentContentRootMutation } from '@/platform/desktop/renderer/desktop-queries';
 import { DesktopContentRootEmptyState } from '@/platform/desktop/renderer/desktop-error-fallback';
+import { executeDesktopCommand } from '@/platform/desktop/renderer/desktop-api';
 import { PinnedDocuments } from '@/widgets/document/pinned-documents';
 import { RecentDocuments } from '@/widgets/document/recent-documents';
 import { SessionResumeCard } from '@/widgets/navigation/session-resume-card';
@@ -75,15 +76,23 @@ export function DesktopHomePage() {
           <div>
             <p className="eyebrow">Keyboard</p>
             <h2>빠른 명령</h2>
-            <p className="muted">native menu와 command palette로 주요 작업을 바로 실행할 수 있습니다.</p>
+            <p className="muted">기본 shortcut은 바로 동작하고, 전체 목록은 도움말로 볼 수 있습니다.</p>
           </div>
           <ul className="shortcut-list muted mono">
-            <li>⌘/Ctrl + O → 폴더 열기</li>
             <li>⌘/Ctrl + K → 검색 포커스</li>
             <li>⌘/Ctrl + ⇧ + P → command palette</li>
-            <li>⌘/Ctrl + ⇧ + L → 테마 전환</li>
             <li>⌥ + ←/→ → 뒤로 / 앞으로</li>
+            <li>t / o / m → 문서 화면 레이아웃 제어</li>
+            <li>⌘/Ctrl + / 또는 ? → shortcut 도움말</li>
           </ul>
+          <div className="actions">
+            <button type="button" className="button-link secondary" onClick={() => void executeDesktopCommand('toggle-command-palette')}>
+              command palette 열기
+            </button>
+            <button type="button" className="button-link secondary" onClick={() => window.dispatchEvent(new CustomEvent('markdeck:toggle-shortcut-help'))}>
+              shortcut 도움말 보기
+            </button>
+          </div>
         </article>
       </div>
 
