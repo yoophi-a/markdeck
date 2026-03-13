@@ -186,9 +186,9 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], o
 
             return <MarkdownImage src={src} alt={alt} currentRelativePath={currentRelativePath} />;
           },
-          h1: ({ children }) => <Heading level={1} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
-          h2: ({ children }) => <Heading level={2} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
-          h3: ({ children }) => <Heading level={3} id={createHeadingId(extractPlainText(children))}>{children}</Heading>,
+          h1: ({ children }) => <Heading level={1} id={createHeadingId(extractPlainText(children))} text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>{children}</Heading>,
+          h2: ({ children }) => <Heading level={2} id={createHeadingId(extractPlainText(children))} text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>{children}</Heading>,
+          h3: ({ children }) => <Heading level={3} id={createHeadingId(extractPlainText(children))} text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>{children}</Heading>,
           p: ({ children }) => (
             <Block levelTag="p" text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>
               {children}
@@ -266,11 +266,42 @@ function Block({
   );
 }
 
-function Heading({ level, id, children }: { level: 1 | 2 | 3; id: string; children: React.ReactNode }) {
+function Heading({
+  level,
+  id,
+  text,
+  deleted,
+  onToggleDeletion,
+  children,
+}: {
+  level: 1 | 2 | 3;
+  id: string;
+  text: string;
+  deleted: boolean;
+  onToggleDeletion?: (payload: { blockId: string; blockText: string }) => void;
+  children: React.ReactNode;
+}) {
   const Tag = `h${level}` as const;
+  const blockId = createHeadingIdFromText(text);
 
   return (
-    <Tag id={id}>
+    <Tag id={id} className="annotation-block" data-annotation-block-id={blockId} data-annotation-deleted={deleted ? 'true' : undefined}>
+      {onToggleDeletion ? (
+        <Button
+          type="button"
+          variant={deleted ? 'destructive' : 'ghost'}
+          size="icon-xs"
+          className="annotation-delete-button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleDeletion({ blockId, blockText: normalizeWhitespace(text) });
+          }}
+          title={deleted ? '삭제 표시 해제' : '이 헤더 삭제 표시'}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      ) : null}
       <a href={`#${id}`} className="heading-anchor">
         <span className="heading-anchor-mark">#</span>
       </a>
