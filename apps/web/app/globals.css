@@ -528,9 +528,80 @@ body.is-resizing-document-layout {
   transition: opacity 0.16s ease;
 }
 
+.annotation-comment-preview {
+  position: absolute;
+  top: 0.1rem;
+  right: -4.8rem;
+  z-index: 2;
+}
+
+.annotation-comment-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text-muted);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transition: opacity 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.annotation-comment-preview-popover {
+  position: absolute;
+  top: 2rem;
+  right: 0;
+  min-width: min(320px, calc(100vw - 64px));
+  max-width: min(360px, calc(100vw - 64px));
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.annotation-comment-preview-list {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.annotation-comment-preview-item {
+  padding-top: 8px;
+  border-top: 1px solid color-mix(in srgb, var(--line) 76%, transparent);
+}
+
+.annotation-comment-preview-item:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.annotation-comment-preview-body,
+.annotation-comment-preview-quote {
+  margin: 0;
+}
+
+.annotation-comment-preview-quote {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .annotation-block:hover .annotation-delete-button,
-.annotation-delete-button:focus-visible {
+.annotation-delete-button:focus-visible,
+.annotation-block:hover .annotation-comment-indicator,
+.annotation-comment-preview:focus-within .annotation-comment-indicator,
+.annotation-comment-preview:hover .annotation-comment-indicator {
   opacity: 1;
+}
+
+.annotation-comment-preview:hover .annotation-comment-indicator,
+.annotation-comment-preview:focus-within .annotation-comment-indicator {
+  color: color-mix(in srgb, var(--accent) 72%, var(--text));
+  transform: translateY(-1px);
 }
 
 .annotation-block[data-annotation-deleted='true'] {

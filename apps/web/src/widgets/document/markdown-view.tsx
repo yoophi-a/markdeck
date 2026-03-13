@@ -1,11 +1,11 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
+import { MessageSquareText, Trash2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-import { findQuotedTextRange, normalizeWhitespace, type AnnotationTextAnchor, type DeletionAnnotation, type DocumentAnnotation } from '@/shared/lib/annotations';
+import { findQuotedTextRange, normalizeWhitespace, type AnnotationTextAnchor, type CommentAnnotation, type DeletionAnnotation, type DocumentAnnotation } from '@/shared/lib/annotations';
 import { resolveAssetHref, isImageAsset } from '@/shared/lib/assets';
 import { resolveMarkdownLink } from '@/shared/lib/content-links';
 import { createSlugger, extractCodeText } from '@/shared/lib/markdown';
@@ -43,6 +43,21 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], a
     () => new Set(annotations.filter((annotation): annotation is DeletionAnnotation => annotation.kind === 'deletion').map((annotation) => annotation.anchor.blockId)),
     [annotations]
   );
+  const commentAnnotationsByBlockId = useMemo(() => {
+    const next = new Map<string, CommentAnnotation[]>();
+
+    annotations.forEach((annotation) => {
+      if (annotation.kind !== 'comment' || annotation.anchor.kind !== 'text-range') {
+        return;
+      }
+
+      const blockComments = next.get(annotation.anchor.blockId) ?? [];
+      blockComments.push(annotation);
+      next.set(annotation.anchor.blockId, blockComments);
+    });
+
+    return next;
+  }, [annotations]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -194,24 +209,105 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], a
 
             return <MarkdownImage src={src} alt={alt} currentRelativePath={currentRelativePath} />;
           },
-          h1: ({ children }) => <Heading level={1} id={createHeadingId(extractPlainText(children))} text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>{children}</Heading>,
-          h2: ({ children }) => <Heading level={2} id={createHeadingId(extractPlainText(children))} text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>{children}</Heading>,
-          h3: ({ children }) => <Heading level={3} id={createHeadingId(extractPlainText(children))} text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>{children}</Heading>,
-          p: ({ children }) => (
-            <Block levelTag="p" text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>
-              {children}
-            </Block>
-          ),
-          blockquote: ({ children }) => (
-            <Block levelTag="blockquote" text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>
-              {children}
-            </Block>
-          ),
-          li: ({ children }) => (
-            <Block levelTag="li" text={extractPlainText(children)} deleted={deletedBlockIds.has(createHeadingIdFromText(extractPlainText(children)))} onToggleDeletion={onToggleDeletion}>
-              {children}
-            </Block>
-          ),
+          h1: ({ children }) => {
+            const text = extractPlainText(children);
+            const blockId = createHeadingIdFromText(text);
+
+            return (
+              <Heading
+                level={1}
+                id={createHeadingId(text)}
+                text={text}
+                deleted={deletedBlockIds.has(blockId)}
+                comments={commentAnnotationsByBlockId.get(blockId) ?? []}
+                onToggleDeletion={onToggleDeletion}
+              >
+                {children}
+              </Heading>
+            );
+          },
+          h2: ({ children }) => {
+            const text = extractPlainText(children);
+            const blockId = createHeadingIdFromText(text);
+
+            return (
+              <Heading
+                level={2}
+                id={createHeadingId(text)}
+                text={text}
+                deleted={deletedBlockIds.has(blockId)}
+                comments={commentAnnotationsByBlockId.get(blockId) ?? []}
+                onToggleDeletion={onToggleDeletion}
+              >
+                {children}
+              </Heading>
+            );
+          },
+          h3: ({ children }) => {
+            const text = extractPlainText(children);
+            const blockId = createHeadingIdFromText(text);
+
+            return (
+              <Heading
+                level={3}
+                id={createHeadingId(text)}
+                text={text}
+                deleted={deletedBlockIds.has(blockId)}
+                comments={commentAnnotationsByBlockId.get(blockId) ?? []}
+                onToggleDeletion={onToggleDeletion}
+              >
+                {children}
+              </Heading>
+            );
+          },
+          p: ({ children }) => {
+            const text = extractPlainText(children);
+            const blockId = createHeadingIdFromText(text);
+
+            return (
+              <Block
+                levelTag="p"
+                text={text}
+                deleted={deletedBlockIds.has(blockId)}
+                comments={commentAnnotationsByBlockId.get(blockId) ?? []}
+                onToggleDeletion={onToggleDeletion}
+              >
+                {children}
+              </Block>
+            );
+          },
+          blockquote: ({ children }) => {
+            const text = extractPlainText(children);
+            const blockId = createHeadingIdFromText(text);
+
+            return (
+              <Block
+                levelTag="blockquote"
+                text={text}
+                deleted={deletedBlockIds.has(blockId)}
+                comments={commentAnnotationsByBlockId.get(blockId) ?? []}
+                onToggleDeletion={onToggleDeletion}
+              >
+                {children}
+              </Block>
+            );
+          },
+          li: ({ children }) => {
+            const text = extractPlainText(children);
+            const blockId = createHeadingIdFromText(text);
+
+            return (
+              <Block
+                levelTag="li"
+                text={text}
+                deleted={deletedBlockIds.has(blockId)}
+                comments={commentAnnotationsByBlockId.get(blockId) ?? []}
+                onToggleDeletion={onToggleDeletion}
+              >
+                {children}
+              </Block>
+            );
+          },
           code: ({ className, children }) => {
             const language = className?.replace('language-', '').trim();
             const code = extractCodeText(children).replace(/\n$/, '');
@@ -239,12 +335,14 @@ function Block({
   levelTag,
   text,
   deleted,
+  comments,
   onToggleDeletion,
   children,
 }: {
   levelTag: 'p' | 'li' | 'blockquote';
   text: string;
   deleted: boolean;
+  comments: CommentAnnotation[];
   onToggleDeletion?: (payload: { blockId: string; blockText: string }) => void;
   children: React.ReactNode;
 }) {
@@ -253,6 +351,7 @@ function Block({
 
   return (
     <Tag className="annotation-block" data-annotation-block-id={blockId} data-annotation-deleted={deleted ? 'true' : undefined}>
+      <BlockCommentPreview comments={comments} />
       {onToggleDeletion ? (
         <Button
           type="button"
@@ -279,6 +378,7 @@ function Heading({
   id,
   text,
   deleted,
+  comments,
   onToggleDeletion,
   children,
 }: {
@@ -286,6 +386,7 @@ function Heading({
   id: string;
   text: string;
   deleted: boolean;
+  comments: CommentAnnotation[];
   onToggleDeletion?: (payload: { blockId: string; blockText: string }) => void;
   children: React.ReactNode;
 }) {
@@ -294,6 +395,7 @@ function Heading({
 
   return (
     <Tag id={id} className="annotation-block" data-annotation-block-id={blockId} data-annotation-deleted={deleted ? 'true' : undefined}>
+      <BlockCommentPreview comments={comments} />
       {onToggleDeletion ? (
         <Button
           type="button"
@@ -315,6 +417,57 @@ function Heading({
       </a>
       {children}
     </Tag>
+  );
+}
+
+function BlockCommentPreview({ comments }: { comments: CommentAnnotation[] }) {
+  const [open, setOpen] = useState(false);
+
+  if (comments.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      className="annotation-comment-preview"
+      onMouseEnter={() => setOpen(true)}
+      onMouseLeave={() => setOpen(false)}
+      onFocusCapture={() => setOpen(true)}
+      onBlurCapture={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+          return;
+        }
+
+        setOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        className="annotation-comment-indicator"
+        aria-label={`이 블록에 코멘트 ${comments.length}개`}
+        aria-expanded={open}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen((current) => !current);
+        }}
+      >
+        <MessageSquareText className="size-3.5" />
+      </button>
+      {open ? (
+        <div className="annotation-comment-preview-popover" role="dialog" aria-label="코멘트 미리보기">
+          <strong>코멘트 {comments.length}개</strong>
+          <div className="annotation-comment-preview-list">
+            {comments.map((comment) => (
+              <div key={comment.id} className="annotation-comment-preview-item">
+                <p className="annotation-comment-preview-body">{comment.comment}</p>
+                <p className="annotation-comment-preview-quote">“{comment.anchor.kind === 'text-range' ? comment.anchor.quote : ''}”</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
