@@ -8,17 +8,17 @@ import { Button } from '@/shared/ui/button';
 
 interface ReaderLayoutSettings {
   showTree: boolean;
-  showToc: boolean;
+  showFeedback: boolean;
   isDocumentMaximized: boolean;
   treeWidth: number;
-  tocWidth: number;
+  feedbackWidth: number;
 }
 
 interface DocumentReaderLayoutProps {
   tree: React.ReactNode;
   document: React.ReactNode;
   maximizedDocument: React.ReactNode;
-  toc: React.ReactNode;
+  feedback: React.ReactNode;
 }
 
 const STORAGE_KEY = 'markdeck:reader-layout';
@@ -26,13 +26,13 @@ const MIN_PANEL_WIDTH = 220;
 const MAX_PANEL_WIDTH = 420;
 const DEFAULT_SETTINGS: ReaderLayoutSettings = {
   showTree: true,
-  showToc: true,
+  showFeedback: true,
   isDocumentMaximized: false,
   treeWidth: 280,
-  tocWidth: 280,
+  feedbackWidth: 280,
 };
 
-export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }: DocumentReaderLayoutProps) {
+export function DocumentReaderLayout({ tree, document, maximizedDocument, feedback }: DocumentReaderLayoutProps) {
   const [settings, setSettings] = useState<ReaderLayoutSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
@@ -51,7 +51,7 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }:
       }
 
       if (!(event instanceof KeyboardEvent) && event.type === 'markdeck:toggle-document-toc') {
-        setSettings((current) => ({ ...current, showToc: !current.showToc }));
+        setSettings((current) => ({ ...current, showFeedback: !current.showFeedback }));
         return;
       }
 
@@ -81,7 +81,7 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }:
   const layoutClassName = useMemo(() => {
     const classNames = ['document-layout'];
 
-    if (settings.showTree && settings.showToc) {
+    if (settings.showTree && settings.showFeedback) {
       classNames.push('with-tree');
     }
 
@@ -89,7 +89,7 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }:
       classNames.push('has-tree');
     }
 
-    if (settings.showToc) {
+    if (settings.showFeedback) {
       classNames.push('has-toc');
     }
 
@@ -98,15 +98,15 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }:
     }
 
     return classNames.join(' ');
-  }, [settings.isDocumentMaximized, settings.showToc, settings.showTree]);
+  }, [settings.isDocumentMaximized, settings.showFeedback, settings.showTree]);
 
   const layoutStyle = useMemo(
     () =>
       ({
         '--document-tree-width': `${settings.treeWidth}px`,
-        '--document-toc-width': `${settings.tocWidth}px`,
+        '--document-toc-width': `${settings.feedbackWidth}px`,
       }) as React.CSSProperties,
-    [settings.tocWidth, settings.treeWidth]
+    [settings.feedbackWidth, settings.treeWidth]
   );
 
   return (
@@ -128,13 +128,25 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }:
               <Maximize2 className="size-4" />
               미리보기만 보기
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setSettings((current) => ({ ...current, showTree: !current.showTree }))}>
+            <Button
+              type="button"
+              variant={settings.showTree ? 'default' : 'outline'}
+              size="sm"
+              aria-pressed={settings.showTree}
+              onClick={() => setSettings((current) => ({ ...current, showTree: !current.showTree }))}
+            >
               <LayoutPanelLeft className="size-4" />
-              {settings.showTree ? '트리 숨기기' : '트리 보기'}
+              트리
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setSettings((current) => ({ ...current, showToc: !current.showToc }))}>
+            <Button
+              type="button"
+              variant={settings.showFeedback ? 'default' : 'outline'}
+              size="sm"
+              aria-pressed={settings.showFeedback}
+              onClick={() => setSettings((current) => ({ ...current, showFeedback: !current.showFeedback }))}
+            >
               <ListTree className="size-4" />
-              {settings.showToc ? '목차 숨기기' : '목차 보기'}
+              피드백
             </Button>
           </div>
         </div>
@@ -172,20 +184,20 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, toc }:
               />
             ) : null}
             <div className="document-main stack">{document}</div>
-            {settings.showToc ? (
+            {settings.showFeedback ? (
               <ResizeHandle
                 ariaLabel="우측 패널 너비 조절"
-                title="목차 너비 조절"
+                title="피드백 너비 조절"
                 onResize={(deltaX) => {
                   setSettings((current) => ({
                     ...current,
-                    tocWidth: clampPanelWidth(current.tocWidth - deltaX),
+                    feedbackWidth: clampPanelWidth(current.feedbackWidth - deltaX),
                   }));
                 }}
                 icon="right"
               />
             ) : null}
-            {settings.showToc ? <div className="document-side stack">{toc}</div> : null}
+            {settings.showFeedback ? <div className="document-side stack">{feedback}</div> : null}
           </>
         )}
       </div>
@@ -255,13 +267,13 @@ function readLayoutSettings(): ReaderLayoutSettings {
       return DEFAULT_SETTINGS;
     }
 
-    const parsed = JSON.parse(rawValue) as Partial<ReaderLayoutSettings>;
+    const parsed = JSON.parse(rawValue) as Partial<ReaderLayoutSettings> & { showToc?: boolean; tocWidth?: number };
     return {
       showTree: parsed.showTree ?? true,
-      showToc: parsed.showToc ?? true,
+      showFeedback: parsed.showFeedback ?? parsed.showToc ?? true,
       isDocumentMaximized: parsed.isDocumentMaximized ?? false,
       treeWidth: clampPanelWidth(parsed.treeWidth ?? DEFAULT_SETTINGS.treeWidth),
-      tocWidth: clampPanelWidth(parsed.tocWidth ?? DEFAULT_SETTINGS.tocWidth),
+      feedbackWidth: clampPanelWidth(parsed.feedbackWidth ?? parsed.tocWidth ?? DEFAULT_SETTINGS.feedbackWidth),
     };
   } catch {
     return DEFAULT_SETTINGS;

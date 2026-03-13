@@ -284,7 +284,7 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
           </>
         }
         maximizedDocument={documentArticle}
-        toc={<DocumentFeedbackPanel annotations={annotations} headings={headings} onDeleteAnnotation={(annotationId) => setAnnotations((current) => current.filter((annotation) => annotation.id !== annotationId))} />}
+        feedback={<DocumentFeedbackPanel annotations={annotations} headings={headings} onDeleteAnnotation={(annotationId) => setAnnotations((current) => current.filter((annotation) => annotation.id !== annotationId))} />}
       />
     </section>
   );
