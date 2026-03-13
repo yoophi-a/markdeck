@@ -27,6 +27,7 @@ import { DocumentTree } from '@/widgets/document/document-tree';
 import { MarkdownView } from '@/widgets/document/markdown-view';
 import { PinnedDocuments } from '@/widgets/document/pinned-documents';
 import { RecentDocuments } from '@/widgets/document/recent-documents';
+import { TableOfContents } from '@/widgets/document/table-of-contents';
 import { Breadcrumbs } from '@/widgets/navigation/breadcrumbs';
 
 interface DesktopDocumentPageProps {
@@ -284,7 +285,8 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
           </>
         }
         maximizedDocument={documentArticle}
-        feedback={<DocumentFeedbackPanel annotations={annotations} headings={headings} onDeleteAnnotation={(annotationId) => setAnnotations((current) => current.filter((annotation) => annotation.id !== annotationId))} />}
+        feedback={<DocumentFeedbackPanel annotations={annotations} onDeleteAnnotation={(annotationId) => setAnnotations((current) => current.filter((annotation) => annotation.id !== annotationId))} />}
+        toc={<TableOfContents headings={headings} />}
       />
     </section>
   );
@@ -366,4 +368,3 @@ function toggleDeletionAnnotation(current: DocumentAnnotation[], blockId: string
 
   return [...current, annotation];
 }
-

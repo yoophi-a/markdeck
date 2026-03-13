@@ -1,6 +1,6 @@
 'use client';
 
-import { LayoutPanelLeft, ListTree, Maximize2, Minimize2, PanelLeftClose, PanelRightClose } from 'lucide-react';
+import { LayoutPanelLeft, ListTree, Maximize2, Minimize2, MessageSquareText, PanelLeftClose, PanelRightClose } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
 import { cn } from '@/shared/lib/utils';
@@ -9,9 +9,10 @@ import { Button } from '@/shared/ui/button';
 interface ReaderLayoutSettings {
   showTree: boolean;
   showFeedback: boolean;
+  showToc: boolean;
   isDocumentMaximized: boolean;
   treeWidth: number;
-  feedbackWidth: number;
+  rightPanelWidth: number;
 }
 
 interface DocumentReaderLayoutProps {
@@ -19,6 +20,7 @@ interface DocumentReaderLayoutProps {
   document: React.ReactNode;
   maximizedDocument: React.ReactNode;
   feedback: React.ReactNode;
+  toc: React.ReactNode;
 }
 
 const STORAGE_KEY = 'markdeck:reader-layout';
@@ -27,12 +29,13 @@ const MAX_PANEL_WIDTH = 420;
 const DEFAULT_SETTINGS: ReaderLayoutSettings = {
   showTree: true,
   showFeedback: true,
+  showToc: true,
   isDocumentMaximized: false,
   treeWidth: 280,
-  feedbackWidth: 280,
+  rightPanelWidth: 280,
 };
 
-export function DocumentReaderLayout({ tree, document, maximizedDocument, feedback }: DocumentReaderLayoutProps) {
+export function DocumentReaderLayout({ tree, document, maximizedDocument, feedback, toc }: DocumentReaderLayoutProps) {
   const [settings, setSettings] = useState<ReaderLayoutSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
@@ -50,8 +53,13 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, feedba
         return;
       }
 
-      if (!(event instanceof KeyboardEvent) && event.type === 'markdeck:toggle-document-toc') {
+      if (!(event instanceof KeyboardEvent) && event.type === 'markdeck:toggle-document-feedback') {
         setSettings((current) => ({ ...current, showFeedback: !current.showFeedback }));
+        return;
+      }
+
+      if (!(event instanceof KeyboardEvent) && event.type === 'markdeck:toggle-document-toc') {
+        setSettings((current) => ({ ...current, showToc: !current.showToc }));
         return;
       }
 
@@ -67,21 +75,25 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, feedba
 
     window.addEventListener('keydown', handleDocumentShortcut);
     window.addEventListener('markdeck:toggle-document-tree', handleDocumentShortcut as EventListener);
+    window.addEventListener('markdeck:toggle-document-feedback', handleDocumentShortcut as EventListener);
     window.addEventListener('markdeck:toggle-document-toc', handleDocumentShortcut as EventListener);
     window.addEventListener('markdeck:toggle-document-maximize', handleDocumentShortcut as EventListener);
 
     return () => {
       window.removeEventListener('keydown', handleDocumentShortcut);
       window.removeEventListener('markdeck:toggle-document-tree', handleDocumentShortcut as EventListener);
+      window.removeEventListener('markdeck:toggle-document-feedback', handleDocumentShortcut as EventListener);
       window.removeEventListener('markdeck:toggle-document-toc', handleDocumentShortcut as EventListener);
       window.removeEventListener('markdeck:toggle-document-maximize', handleDocumentShortcut as EventListener);
     };
   }, []);
 
+  const hasRightPanel = settings.showFeedback || settings.showToc;
+
   const layoutClassName = useMemo(() => {
     const classNames = ['document-layout'];
 
-    if (settings.showTree && settings.showFeedback) {
+    if (settings.showTree && hasRightPanel) {
       classNames.push('with-tree');
     }
 
@@ -89,7 +101,7 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, feedba
       classNames.push('has-tree');
     }
 
-    if (settings.showFeedback) {
+    if (hasRightPanel) {
       classNames.push('has-toc');
     }
 
@@ -98,15 +110,15 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, feedba
     }
 
     return classNames.join(' ');
-  }, [settings.isDocumentMaximized, settings.showFeedback, settings.showTree]);
+  }, [hasRightPanel, settings.isDocumentMaximized, settings.showTree]);
 
   const layoutStyle = useMemo(
     () =>
       ({
         '--document-tree-width': `${settings.treeWidth}px`,
-        '--document-toc-width': `${settings.feedbackWidth}px`,
+        '--document-toc-width': `${settings.rightPanelWidth}px`,
       }) as React.CSSProperties,
-    [settings.feedbackWidth, settings.treeWidth]
+    [settings.rightPanelWidth, settings.treeWidth]
   );
 
   return (
@@ -128,25 +140,17 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, feedba
               <Maximize2 className="size-4" />
               미리보기만 보기
             </Button>
-            <Button
-              type="button"
-              variant={settings.showTree ? 'default' : 'outline'}
-              size="sm"
-              aria-pressed={settings.showTree}
-              onClick={() => setSettings((current) => ({ ...current, showTree: !current.showTree }))}
-            >
+            <Button type="button" variant={settings.showTree ? 'default' : 'outline'} size="sm" aria-pressed={settings.showTree} onClick={() => setSettings((current) => ({ ...current, showTree: !current.showTree }))}>
               <LayoutPanelLeft className="size-4" />
               트리
             </Button>
-            <Button
-              type="button"
-              variant={settings.showFeedback ? 'default' : 'outline'}
-              size="sm"
-              aria-pressed={settings.showFeedback}
-              onClick={() => setSettings((current) => ({ ...current, showFeedback: !current.showFeedback }))}
-            >
-              <ListTree className="size-4" />
+            <Button type="button" variant={settings.showFeedback ? 'default' : 'outline'} size="sm" aria-pressed={settings.showFeedback} onClick={() => setSettings((current) => ({ ...current, showFeedback: !current.showFeedback }))}>
+              <MessageSquareText className="size-4" />
               피드백
+            </Button>
+            <Button type="button" variant={settings.showToc ? 'default' : 'outline'} size="sm" aria-pressed={settings.showToc} onClick={() => setSettings((current) => ({ ...current, showToc: !current.showToc }))}>
+              <ListTree className="size-4" />
+              목차
             </Button>
           </div>
         </div>
@@ -155,14 +159,7 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, feedba
       <div className={layoutClassName} style={layoutStyle}>
         {settings.isDocumentMaximized ? (
           <div className={cn('document-maximized-shell', 'stack')}>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              className="document-maximized-restore"
-              onClick={() => setSettings((current) => ({ ...current, isDocumentMaximized: false }))}
-              title="Esc 로도 돌아갈 수 있습니다"
-            >
+            <Button type="button" variant="secondary" size="sm" className="document-maximized-restore" onClick={() => setSettings((current) => ({ ...current, isDocumentMaximized: false }))} title="Esc 로도 돌아갈 수 있습니다">
               <Minimize2 className="size-4" />
               일반 보기
             </Button>
@@ -171,33 +168,10 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, feedba
         ) : (
           <>
             {settings.showTree ? <div className="document-tree-side stack">{tree}</div> : null}
-            {settings.showTree ? (
-              <ResizeHandle
-                ariaLabel="좌측 패널 너비 조절"
-                title="트리 너비 조절"
-                onResize={(deltaX) => {
-                  setSettings((current) => ({
-                    ...current,
-                    treeWidth: clampPanelWidth(current.treeWidth + deltaX),
-                  }));
-                }}
-              />
-            ) : null}
+            {settings.showTree ? <ResizeHandle ariaLabel="좌측 패널 너비 조절" title="트리 너비 조절" onResize={(deltaX) => setSettings((current) => ({ ...current, treeWidth: clampPanelWidth(current.treeWidth + deltaX) }))} /> : null}
             <div className="document-main stack">{document}</div>
-            {settings.showFeedback ? (
-              <ResizeHandle
-                ariaLabel="우측 패널 너비 조절"
-                title="피드백 너비 조절"
-                onResize={(deltaX) => {
-                  setSettings((current) => ({
-                    ...current,
-                    feedbackWidth: clampPanelWidth(current.feedbackWidth - deltaX),
-                  }));
-                }}
-                icon="right"
-              />
-            ) : null}
-            {settings.showFeedback ? <div className="document-side stack">{feedback}</div> : null}
+            {hasRightPanel ? <ResizeHandle ariaLabel="우측 패널 너비 조절" title="우측 패널 너비 조절" onResize={(deltaX) => setSettings((current) => ({ ...current, rightPanelWidth: clampPanelWidth(current.rightPanelWidth - deltaX) }))} icon="right" /> : null}
+            {hasRightPanel ? <div className="document-side stack">{settings.showFeedback ? feedback : null}{settings.showToc ? toc : null}</div> : null}
           </>
         )}
       </div>
@@ -205,17 +179,7 @@ export function DocumentReaderLayout({ tree, document, maximizedDocument, feedba
   );
 }
 
-function ResizeHandle({
-  onResize,
-  ariaLabel,
-  title,
-  icon = 'left',
-}: {
-  onResize: (deltaX: number) => void;
-  ariaLabel: string;
-  title: string;
-  icon?: 'left' | 'right';
-}) {
+function ResizeHandle({ onResize, ariaLabel, title, icon = 'left' }: { onResize: (deltaX: number) => void; ariaLabel: string; title: string; icon?: 'left' | 'right' }) {
   function handlePointerDown(event: React.PointerEvent<HTMLButtonElement>) {
     if (window.innerWidth <= 1024) {
       return;
@@ -267,13 +231,14 @@ function readLayoutSettings(): ReaderLayoutSettings {
       return DEFAULT_SETTINGS;
     }
 
-    const parsed = JSON.parse(rawValue) as Partial<ReaderLayoutSettings> & { showToc?: boolean; tocWidth?: number };
+    const parsed = JSON.parse(rawValue) as Partial<ReaderLayoutSettings> & { showToc?: boolean; tocWidth?: number; feedbackWidth?: number };
     return {
       showTree: parsed.showTree ?? true,
-      showFeedback: parsed.showFeedback ?? parsed.showToc ?? true,
+      showFeedback: parsed.showFeedback ?? true,
+      showToc: parsed.showToc ?? true,
       isDocumentMaximized: parsed.isDocumentMaximized ?? false,
       treeWidth: clampPanelWidth(parsed.treeWidth ?? DEFAULT_SETTINGS.treeWidth),
-      feedbackWidth: clampPanelWidth(parsed.feedbackWidth ?? parsed.tocWidth ?? DEFAULT_SETTINGS.feedbackWidth),
+      rightPanelWidth: clampPanelWidth(parsed.rightPanelWidth ?? parsed.feedbackWidth ?? parsed.tocWidth ?? DEFAULT_SETTINGS.rightPanelWidth),
     };
   } catch {
     return DEFAULT_SETTINGS;

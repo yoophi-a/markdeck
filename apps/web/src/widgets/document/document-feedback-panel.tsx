@@ -5,12 +5,9 @@ import { useMemo, useState } from 'react';
 
 import type { DocumentAnnotation } from '@/shared/lib/annotations';
 import { Button } from '@/shared/ui/button';
-import { TableOfContents } from '@/widgets/document/table-of-contents';
-import type { HeadingItem } from '@/shared/lib/markdown';
 
 interface DocumentFeedbackPanelProps {
   annotations: DocumentAnnotation[];
-  headings: HeadingItem[];
   onDeleteAnnotation: (annotationId: string) => void;
 }
 
@@ -21,7 +18,7 @@ const filterOptions = [
   { value: 'deletion', label: '삭제표시', icon: ScissorsLineDashed },
 ] as const;
 
-export function DocumentFeedbackPanel({ annotations, headings, onDeleteAnnotation }: DocumentFeedbackPanelProps) {
+export function DocumentFeedbackPanel({ annotations, onDeleteAnnotation }: DocumentFeedbackPanelProps) {
   const [filter, setFilter] = useState<(typeof filterOptions)[number]['value']>('all');
   const filteredAnnotations = useMemo(() => {
     if (filter === 'all') {
@@ -86,8 +83,6 @@ export function DocumentFeedbackPanel({ annotations, headings, onDeleteAnnotatio
         <p className="muted">공유용 summary 초안입니다. 추후 desktop 저장/내보내기 로직이 붙을 자리를 먼저 마련했습니다.</p>
         <pre className="feedback-share-preview">{shareDraft}</pre>
       </div>
-
-      <TableOfContents headings={headings} />
     </div>
   );
 }
@@ -120,7 +115,7 @@ function buildShareDraft(annotations: DocumentAnnotation[]) {
       lines.push(`   - comment: ${annotation.comment}`);
     }
     if (annotation.kind === 'deletion') {
-      lines.push(`   - action: remove this paragraph/block`);
+      lines.push('   - action: remove this paragraph/block');
     }
     lines.push('');
   });
