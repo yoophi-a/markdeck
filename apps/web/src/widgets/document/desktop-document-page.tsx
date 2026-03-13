@@ -5,20 +5,28 @@ import { useEffect, useMemo, useState } from 'react';
 import { DesktopContentRootEmptyState, DesktopErrorFallback } from '@/platform/desktop/renderer/desktop-error-fallback';
 import { useDesktopContentRootQuery, useDesktopDocumentPageQuery } from '@/platform/desktop/renderer/desktop-queries';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
-import { createAnnotationId, createTimestamp, type CommentAnnotation, type DocumentAnnotation, type HighlightAnnotation } from '@/shared/lib/annotations';
+import {
+  createAnnotationId,
+  createTimestamp,
+  type AnnotationDocument,
+  type CommentAnnotation,
+  type DocumentAnnotation,
+  type HighlightAnnotation,
+} from '@/shared/lib/annotations';
 import type { DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/shared/lib/markdown';
+import { stringifyMemoFile } from '@/shared/lib/memo-format';
 import { toBrowseHref } from '@/shared/lib/routes';
 import { writeLastDocumentState } from '@/shared/lib/view-state';
 import { AppLink } from '@/shared/ui/app-link';
 import { Button } from '@/shared/ui/button';
+import { DocumentFeedbackPanel } from '@/widgets/document/document-feedback-panel';
 import { DocumentReaderLayout } from '@/widgets/document/document-reader-layout';
 import { DocumentTree } from '@/widgets/document/document-tree';
 import { MarkdownView } from '@/widgets/document/markdown-view';
 import { PinnedDocuments } from '@/widgets/document/pinned-documents';
 import { RecentDocuments } from '@/widgets/document/recent-documents';
-import { TableOfContents } from '@/widgets/document/table-of-contents';
 import { Breadcrumbs } from '@/widgets/navigation/breadcrumbs';
 
 interface DesktopDocumentPageProps {
@@ -56,6 +64,20 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
   );
   const headings = useMemo(() => extractHeadings(content), [content]);
   const stats = useMemo(() => summarizeDocument(content, headings.length), [content, headings.length]);
+  const memoPreview = useMemo(() => {
+    if (!document) {
+      return '';
+    }
+
+    const annotationDocument: AnnotationDocument = {
+      schemaVersion: 1,
+      documentPath: document.relativePath,
+      sourceUpdatedAt: document.updatedAt,
+      annotations,
+    };
+
+    return stringifyMemoFile(annotationDocument);
+  }, [annotations, document]);
 
   useEffect(() => {
     if (!document) {
@@ -216,12 +238,22 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
         document={
           <>
             {documentArticle}
+            <div className="card stack">
+              <div className="document-panel-header">
+                <div>
+                  <p className="eyebrow">Memo</p>
+                  <h2>.memo preview</h2>
+                </div>
+              </div>
+              <p className="muted">현재 annotation 상태를 sidecar `.memo` 형식으로 직렬화한 미리보기입니다.</p>
+              <pre className="feedback-share-preview">{memoPreview || '{\n  "operations": []\n}'}</pre>
+            </div>
             <PinnedDocuments currentDocument={{ relativePath: document.relativePath, title: document.title }} emptyMessage="자주 보는 문서를 pin 하면 여기에 고정됩니다." />
             <RecentDocuments currentDocument={{ relativePath: document.relativePath, title: document.title, viewedAt: document.updatedAt }} emptyMessage="이 문서를 보기 시작하면 최근 본 문서가 여기에 쌓입니다." />
           </>
         }
         maximizedDocument={documentArticle}
-        toc={<TableOfContents headings={headings} />}
+        toc={<DocumentFeedbackPanel annotations={annotations} headings={headings} onDeleteAnnotation={(annotationId) => setAnnotations((current) => current.filter((annotation) => annotation.id !== annotationId))} />}
       />
     </section>
   );
