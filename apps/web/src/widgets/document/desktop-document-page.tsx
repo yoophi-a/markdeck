@@ -158,6 +158,7 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
         content={content}
         currentRelativePath={document.relativePath}
         annotations={annotations}
+        activeSelection={selectionDraft}
         onSelectionChange={(draft) => {
           setSelectionDraft(draft);
         }}

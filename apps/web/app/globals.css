@@ -502,6 +502,20 @@ body.is-resizing-document-layout {
   position: relative;
 }
 
+.markdown-annotation-surface ::selection {
+  background: color-mix(in srgb, #ffe57f 78%, transparent);
+  color: inherit;
+}
+
+.markdown-annotation-surface code::selection,
+.markdown-annotation-surface strong::selection,
+.markdown-annotation-surface em::selection,
+.markdown-annotation-surface a::selection,
+.markdown-annotation-surface mark::selection {
+  background: color-mix(in srgb, #ffe57f 78%, transparent);
+  color: inherit;
+}
+
 .annotation-block {
   position: relative;
 }
@@ -537,6 +551,11 @@ body.is-resizing-document-layout {
 
 .annotation-inline-mark.is-comment {
   background: color-mix(in srgb, #9dd6ff 68%, transparent);
+}
+
+.annotation-inline-mark.is-active-selection {
+  background: color-mix(in srgb, #ffd54f 88%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #ffd54f 30%, transparent);
 }
 
 .annotation-selection-popover {

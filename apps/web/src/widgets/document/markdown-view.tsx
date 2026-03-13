@@ -31,11 +31,12 @@ interface MarkdownViewProps {
   content: string;
   currentRelativePath: string;
   annotations?: DocumentAnnotation[];
+  activeSelection?: SelectionDraft | null;
   onSelectionChange?: (selection: SelectionDraft | null) => void;
   onToggleDeletion?: (payload: { blockId: string; blockText: string }) => void;
 }
 
-export function MarkdownView({ content, currentRelativePath, annotations = [], onSelectionChange, onToggleDeletion }: MarkdownViewProps) {
+export function MarkdownView({ content, currentRelativePath, annotations = [], activeSelection = null, onSelectionChange, onToggleDeletion }: MarkdownViewProps) {
   const createHeadingId = createSlugger();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const deletedBlockIds = useMemo(
@@ -50,6 +51,13 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], o
     }
 
     cleanupAnnotationMarks(container);
+
+    if (activeSelection) {
+      const activeBlock = container.querySelector<HTMLElement>(`[data-annotation-block-id="${activeSelection.blockId}"]`);
+      if (activeBlock) {
+        applyTemporarySelectionMark(activeBlock, activeSelection);
+      }
+    }
 
     annotations.forEach((annotation) => {
       if (annotation.anchor.kind === 'block' && annotation.kind === 'deletion') {
@@ -71,7 +79,7 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], o
 
       applyTextAnnotation(block, annotation.id, annotation.anchor, annotation.kind);
     });
-  }, [annotations]);
+  }, [activeSelection, annotations]);
 
   function handleMouseUp() {
     if (!onSelectionChange || !containerRef.current) {
@@ -382,7 +390,7 @@ function countTextOccurrences(blockText: string, quote: string, range: Range, bl
 }
 
 function cleanupAnnotationMarks(container: HTMLElement) {
-  container.querySelectorAll<HTMLElement>('[data-annotation-mark="true"]').forEach((mark) => {
+  container.querySelectorAll<HTMLElement>('[data-annotation-mark="true"], [data-annotation-selection-mark="true"]').forEach((mark) => {
     const parent = mark.parentNode;
     if (!parent) {
       return;
@@ -398,6 +406,29 @@ function cleanupAnnotationMarks(container: HTMLElement) {
   container.querySelectorAll<HTMLElement>('[data-annotation-block-id]').forEach((block) => {
     delete block.dataset.annotationDeleted;
   });
+}
+
+function applyTemporarySelectionMark(block: HTMLElement, selection: SelectionDraft) {
+  const range = locateTextRange(block, {
+    kind: 'text-range',
+    blockId: selection.blockId,
+    quote: selection.quote,
+    occurrence: selection.occurrence,
+    prefix: selection.prefix,
+    suffix: selection.suffix,
+  });
+  if (!range) {
+    return;
+  }
+
+  const mark = document.createElement('mark');
+  mark.dataset.annotationSelectionMark = 'true';
+  mark.className = 'annotation-inline-mark is-active-selection';
+  try {
+    range.surroundContents(mark);
+  } catch {
+    wrapRangeContents(range, mark);
+  }
 }
 
 function applyTextAnnotation(block: HTMLElement, annotationId: string, anchor: AnnotationTextAnchor, kind: DocumentAnnotation['kind']) {
