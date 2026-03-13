@@ -120,20 +120,77 @@ export function findQuotedTextRange(blockText: string, anchor: AnnotationTextAnc
     return null;
   }
 
-  let fromIndex = 0;
-  let matchIndex = -1;
-
-  for (let occurrence = 0; occurrence <= anchor.occurrence; occurrence += 1) {
-    matchIndex = normalizedBlock.indexOf(anchor.quote, fromIndex);
-    if (matchIndex === -1) {
-      return null;
-    }
-
-    fromIndex = matchIndex + anchor.quote.length;
+  const matches = collectQuoteMatches(normalizedBlock, anchor.quote);
+  if (matches.length === 0) {
+    return null;
   }
 
-  return {
-    start: matchIndex,
-    end: matchIndex + anchor.quote.length,
-  };
+  const contextualMatch = findContextualQuoteMatch(normalizedBlock, matches, anchor);
+  if (contextualMatch) {
+    return contextualMatch;
+  }
+
+  const occurrenceMatch = matches[anchor.occurrence];
+  if (occurrenceMatch) {
+    return occurrenceMatch;
+  }
+
+  return matches[0] ?? null;
+}
+
+function collectQuoteMatches(blockText: string, quote: string) {
+  const matches: Array<{ start: number; end: number }> = [];
+  let fromIndex = 0;
+
+  while (fromIndex >= 0) {
+    const start = blockText.indexOf(quote, fromIndex);
+    if (start === -1) {
+      break;
+    }
+
+    matches.push({ start, end: start + quote.length });
+    fromIndex = start + quote.length;
+  }
+
+  return matches;
+}
+
+function findContextualQuoteMatch(blockText: string, matches: Array<{ start: number; end: number }>, anchor: AnnotationTextAnchor) {
+  const prefix = anchor.prefix ?? '';
+  const suffix = anchor.suffix ?? '';
+  if (!prefix && !suffix) {
+    return null;
+  }
+
+  let bestMatch: { start: number; end: number } | null = null;
+  let bestScore = -1;
+
+  for (const match of matches) {
+    let score = 0;
+
+    if (prefix) {
+      const candidatePrefix = blockText.slice(Math.max(0, match.start - prefix.length), match.start);
+      if (candidatePrefix === prefix) {
+        score += 2;
+      } else if (candidatePrefix.endsWith(prefix.slice(-Math.min(prefix.length, candidatePrefix.length)))) {
+        score += 1;
+      }
+    }
+
+    if (suffix) {
+      const candidateSuffix = blockText.slice(match.end, match.end + suffix.length);
+      if (candidateSuffix === suffix) {
+        score += 2;
+      } else if (candidateSuffix.startsWith(suffix.slice(0, Math.min(suffix.length, candidateSuffix.length)))) {
+        score += 1;
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = match;
+    }
+  }
+
+  return bestScore > 0 ? bestMatch : null;
 }
