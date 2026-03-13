@@ -7,6 +7,7 @@ import {
   createTimestamp,
   type CommentAnnotation,
   type HighlightAnnotation,
+  type StrikeAnnotation,
 } from '@/shared/lib/annotations';
 import { Button } from '@/shared/ui/button';
 
@@ -27,6 +28,7 @@ interface AnnotationSelectionPopoverProps {
   onRestoreSelection: () => void;
   onClose: () => void;
   onAddHighlight: (annotation: HighlightAnnotation) => void;
+  onAddStrike: (annotation: StrikeAnnotation) => void;
   onAddComment: (annotation: CommentAnnotation) => void;
 }
 
@@ -36,6 +38,7 @@ export function AnnotationSelectionPopover({
   onRestoreSelection,
   onClose,
   onAddHighlight,
+  onAddStrike,
   onAddComment,
 }: AnnotationSelectionPopoverProps) {
   const [isCommentMode, setIsCommentMode] = useState(false);
@@ -85,6 +88,31 @@ export function AnnotationSelectionPopover({
           }}
         >
           하이라이트
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => {
+            onRestoreSelection();
+            onAddStrike({
+              id: createAnnotationId(),
+              kind: 'strike',
+              color: 'red',
+              createdAt: createTimestamp(),
+              updatedAt: createTimestamp(),
+              anchor: {
+                kind: 'text-range',
+                blockId: selectionDraft.blockId,
+                quote: selectionDraft.quote,
+                occurrence: selectionDraft.occurrence,
+                prefix: selectionDraft.prefix,
+                suffix: selectionDraft.suffix,
+              },
+            });
+          }}
+        >
+          취소선
         </Button>
         <Button
           type="button"

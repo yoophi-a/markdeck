@@ -593,7 +593,12 @@ function applyTextAnnotation(block: HTMLElement, annotationId: string, anchor: A
   const mark = document.createElement('mark');
   mark.dataset.annotationMark = 'true';
   mark.dataset.annotationId = annotationId;
-  mark.className = kind === 'comment' ? 'annotation-inline-mark is-comment' : 'annotation-inline-mark';
+  mark.className =
+    kind === 'comment'
+      ? 'annotation-inline-mark is-comment'
+      : kind === 'strike'
+        ? 'annotation-inline-mark is-strike'
+        : 'annotation-inline-mark';
   try {
     range.surroundContents(mark);
   } catch {

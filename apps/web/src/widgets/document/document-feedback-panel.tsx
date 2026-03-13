@@ -15,6 +15,7 @@ const filterOptions = [
   { value: 'all', label: '전체', icon: Filter },
   { value: 'highlight', label: '하이라이트', icon: Highlighter },
   { value: 'comment', label: '코멘트', icon: MessageSquareText },
+  { value: 'strike', label: '취소선', icon: ScissorsLineDashed },
   { value: 'deletion', label: '삭제표시', icon: ScissorsLineDashed },
 ] as const;
 
@@ -93,6 +94,8 @@ function annotationLabel(kind: DocumentAnnotation['kind']) {
       return '하이라이트';
     case 'comment':
       return '코멘트';
+    case 'strike':
+      return '취소선';
     case 'deletion':
       return '삭제 표시';
   }
@@ -113,6 +116,9 @@ function buildShareDraft(annotations: DocumentAnnotation[]) {
     }
     if (annotation.kind === 'comment') {
       lines.push(`   - comment: ${annotation.comment}`);
+    }
+    if (annotation.kind === 'strike') {
+      lines.push('   - action: emphasize with strikethrough');
     }
     if (annotation.kind === 'deletion') {
       lines.push('   - action: remove this paragraph/block');

@@ -624,6 +624,13 @@ body.is-resizing-document-layout {
   background: color-mix(in srgb, #9dd6ff 68%, transparent);
 }
 
+.annotation-inline-mark.is-strike {
+  background: color-mix(in srgb, #ffb3b3 42%, transparent);
+  text-decoration: line-through;
+  text-decoration-thickness: 0.12em;
+  text-decoration-color: color-mix(in srgb, #ff6b6b 78%, transparent);
+}
+
 .annotation-inline-mark.is-active-selection {
   background: color-mix(in srgb, #ffd54f 88%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, #ffd54f 30%, transparent);

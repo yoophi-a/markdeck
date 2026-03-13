@@ -1,6 +1,6 @@
 export const MARKDECK_ANNOTATION_SCHEMA_VERSION = 1;
 
-export const annotationKinds = ['highlight', 'comment', 'deletion'] as const;
+export const annotationKinds = ['highlight', 'comment', 'deletion', 'strike'] as const;
 export type AnnotationKind = (typeof annotationKinds)[number];
 
 export const annotationAnchorKinds = ['text-range', 'block'] as const;
@@ -46,7 +46,12 @@ export interface DeletionAnnotation extends BaseAnnotation {
   reason?: string;
 }
 
-export type DocumentAnnotation = HighlightAnnotation | CommentAnnotation | DeletionAnnotation;
+export interface StrikeAnnotation extends BaseAnnotation {
+  kind: 'strike';
+  color: 'red';
+}
+
+export type DocumentAnnotation = HighlightAnnotation | CommentAnnotation | DeletionAnnotation | StrikeAnnotation;
 
 export interface AnnotationDocument {
   schemaVersion: typeof MARKDECK_ANNOTATION_SCHEMA_VERSION;

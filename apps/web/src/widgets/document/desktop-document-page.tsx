@@ -176,6 +176,10 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
             setAnnotations((current) => [...current, annotation]);
             setSelectionDraft(null);
           }}
+          onAddStrike={(annotation) => {
+            setAnnotations((current) => [...current, annotation]);
+            setSelectionDraft(null);
+          }}
           onAddComment={(annotation) => {
             setAnnotations((current) => [...current, annotation]);
             setSelectionDraft(null);
