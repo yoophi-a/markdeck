@@ -1,92 +1,156 @@
 # MarkDeck
 
-Browse and read markdown documents in `openclaw-workspace` through a simple web UI.
+MarkDeck is a desktop-first markdown reader and review tool.
 
-MarkDeck은 `openclaw-workspace` 아래에 보관된 Markdown 파일을 웹에서 탐색하고 읽을 수 있게 해주는 파일시스템 기반 문서 브라우저입니다. 별도 CMS 없이 로컬/서버 디렉터리를 그대로 콘텐츠 소스로 사용하고, 문서 안의 상대 링크를 따라 다른 문서로 이동할 수 있습니다.
+MarkDeck은 로컬 markdown 문서를 **편하게 읽고**, 그 문서를 기반으로 **피드백을 만들고 공유**하기 위한 앱입니다.
 
-## Why MarkDeck?
+현재는 다음 두 가지 목표를 중심으로 개발 중입니다.
 
-workspace 안에는 보통 이런 문서들이 쌓입니다.
+1. **markdown 문서를 편리하게 본다**
+2. **markdown 문서를 기반으로 피드백을 편리하게 생성하고 공유한다**
 
-- 프로젝트 README
-- 설계 문서
-- 작업 메모
-- 운영 문서
-- 회고 / 실험 기록
+---
 
-MarkDeck은 이런 markdown 자산을 **파일 브라우징 + 문서 렌더링 + 링크 이동** 중심으로 빠르게 읽을 수 있게 만드는 것을 목표로 합니다.
+## What MarkDeck does
 
-## Project goals
+MarkDeck은 파일 시스템에 있는 markdown 문서를 별도 CMS 없이 그대로 읽고 탐색할 수 있게 해줍니다. 여기에 더해 문서 위에 annotation 계층을 얹어서 highlight, comment, delete mark 같은 피드백을 만들 수 있습니다.
 
-- 파일 시스템에 있는 markdown 문서를 그대로 콘텐츠 소스로 사용한다.
-- 디렉터리/파일 브라우징을 제공한다.
-- markdown 문서를 서버에서 읽어 HTML로 렌더링한다.
-- 문서 안 상대 경로 링크를 다른 문서/폴더 화면으로 연결한다.
-- content root 바깥 경로 접근을 차단한다.
-- 이후 검색, 인증, 최근 문서, 즐겨찾기 같은 기능으로 확장 가능하게 유지한다.
+핵심 경험은 크게 두 가지입니다.
 
-## Current MVP scope
+- **Reader**: browse / docs / search / wikilink / TOC / desktop reading UX
+- **Reviewer**: selection highlight / comment / delete mark / feedback panel / memo sidecar draft
 
-현재 구현 범위는 아래와 같습니다.
+---
+
+## Current status
+
+### Release
+
+- Current tag: **`v1.0.0`**
+- Repository: <https://github.com/yoophi-a/MarkDeck>
+
+### Product maturity
+
+#### Reading workflow
+이미 충분히 usable 한 수준까지 올라와 있습니다.
 
 - directory browsing
 - markdown rendering
 - mermaid code block rendering
-- full-text search by file path / title / body
-- recent documents list (browser localStorage)
-- heading-based table of contents (TOC)
-- Obsidian-style WikiLink support (`[[Note]]`, `[[path/to/note]]`)
-- local relative image rendering and attachment links
-- relative markdown link navigation
-- hidden file filtering
-- configurable ignore patterns
-- dark / light theme toggle
-- safe content-root restriction
-- custom content root via environment variable
+- full-text search
+- TOC / breadcrumb / recent docs
+- dark / light theme
+- local image / attachment rendering
+- relative markdown links
+- Obsidian-style WikiLink support
+- desktop app packaging baseline
 
-## Screens / routes
+#### Feedback workflow
+1차 annotation 기능이 들어가 있습니다.
 
-- `/`
-  - 랜딩 페이지
-  - 프로젝트 소개와 content root 표시
-- `/browse`
-  - content root 최상위 브라우징
-- `/browse/<path>`
-  - 하위 디렉터리 브라우징
-- `/search?q=...`
-  - 파일명 / 제목 / 본문 기반 markdown 검색
-- `/docs/<path-to-file.md>`
-  - markdown 문서 렌더링
-  - 최근 본 문서 표시
-  - heading 기반 TOC 표시
+- selection highlight
+- selection comment
+- selection strike annotation
+- block-level highlight / comment / delete actions
+- comment icon / preview popover on annotated blocks
+- feedback side panel
+- `.memo` sidecar serialization preview
 
-## Link behavior
+현재 annotation은 **draft + preview 중심**이며, `.memo` 실제 파일 저장/로드는 다음 단계입니다.
 
-MarkDeck은 일반적인 markdown 상대 링크를 기준으로 동작합니다.
+---
 
-그리고 브라우징 목록에서는 ignore pattern에 매칭되는 항목(예: `.git`, `node_modules`)을 숨길 수 있습니다.
+## Desktop architecture
 
-예시:
+MarkDeck은 현재 **Electron desktop app + web renderer** 구조를 사용합니다.
 
-- `./README.md` → 현재 폴더 기준 다른 문서로 이동
-- `../docs/guide.md` → 상위 폴더 기준 문서로 이동
-- `./some-folder` → 해당 폴더 브라우저로 이동
-- `./images/diagram.png` → 현재 문서 기준 로컬 이미지로 렌더링
-- `./files/spec.pdf` → 현재 문서 기준 첨부 링크로 열기
-- `https://example.com` → 외부 링크로 유지
-- `#section` → 현재 문서 내부 anchor 유지
-- `[[WikiLink]]` → 같은 workspace 안의 markdown 문서 링크로 해석
-- `[[folder/note]]` → 경로 기반 wiki link 지원
-- 찾지 못한 WikiLink → plain text로 렌더링
-- ```` ```mermaid ```` 코드블록 → 브라우저에서 다이어그램으로 렌더링
+방향은 점점 더 아래 구조로 이동 중입니다.
 
-## Tech stack
+- **main** → 파일 시스템 / search / asset read / desktop integration
+- **IPC** → typed contract
+- **renderer** → UI / routing / review workflow
 
-- Next.js 15
-- React 19
-- TypeScript
-- react-markdown
-- remark-gfm
+현재 desktop에서 이미 반영된 것:
+
+- Electron main -> IPC 데이터 흐름
+- React Router **HashRouter** 기반 desktop route state
+- React Query 기반 desktop async state
+- desktop 전용 renderer entry
+- single-instance app 보장
+- CLI 인자로 디렉토리 / markdown 파일 열기
+- recent workspace UX
+- desktop fallback UX
+- packaging / hardened runtime baseline
+
+자세한 문서:
+
+- [`apps/web/docs/desktop-bootstrap.md`](./apps/web/docs/desktop-bootstrap.md)
+- [`docs/desktop-architecture-review.md`](./docs/desktop-architecture-review.md)
+- [`docs/platform-boundaries.md`](./docs/platform-boundaries.md)
+- [`docs/desktop-cache-strategy.md`](./docs/desktop-cache-strategy.md)
+- [`docs/desktop-packaging.md`](./docs/desktop-packaging.md)
+
+---
+
+## Annotation / feedback model
+
+현재 annotation은 다음 개념을 기반으로 합니다.
+
+### Types
+- `highlight`
+- `comment`
+- `deletion`
+- `strike`
+
+### Anchors
+- `text-range`
+- `block`
+
+### Persistence direction
+- annotation sidecar file: **`.파일명.memo`**
+- diff-like operation format 초안 존재
+- 현재는 localStorage draft + serialization preview까지 구현
+- 실제 file write/read desktop 연동은 후속 작업
+
+관련 설계 문서:
+- [`docs/annotations.md`](./docs/annotations.md)
+- [`docs/memo-format.md`](./docs/memo-format.md)
+
+---
+
+## Main features
+
+## Reading
+- content root 기반 브라우징
+- markdown preview
+- 문서 내 heading anchor / TOC
+- relative link navigation
+- local image / attachment rendering
+- Wikilink 지원
+- 최근 본 문서 / pinned docs
+- search
+- desktop file-open flow
+
+## Review / feedback
+- 텍스트 선택 후 highlight / comment / strike
+- paragraph / heading block 단위 quick actions
+- delete mark 시각화
+- comment annotation icon / preview popover
+- feedback panel에서 annotation 목록 / 필터 / 삭제
+- feedback draft text preview
+- `.memo` serialization preview
+
+## Desktop UX
+- recent folders / workspace reopen
+- keyboard shortcut help
+- watcher 기반 자동 갱신
+- desktop packaging baseline
+- single-instance protection
+- CLI launch support
+  - `MarkDeck <dir>`
+  - `MarkDeck <file.md>`
+
+---
 
 ## Project structure
 
@@ -102,62 +166,62 @@ markdeck/
       package.json
       main.js
       preload.js
+  docs/
+  ROADMAP.md
+  TODO.md
+  IMPROVEMENT.md
+  README.md
   pnpm-workspace.yaml
   tsconfig.base.json
-  README.md
 ```
+
+---
 
 ## Local development
 
-### 1) Configure environment
-
-```bash
-cp apps/web/.env.example apps/web/.env.local
-```
-
-Edit `apps/web/.env.local`:
-
-```bash
-MARKDECK_CONTENT_ROOT=/Users/yoophi/openclaw-workspace
-MARKDECK_APP_TITLE=MarkDeck
-MARKDECK_IGNORE_PATTERNS=.git,node_modules
-```
-
-### 2) Install dependencies
+### 1) Install dependencies
 
 ```bash
 npx pnpm install
 ```
 
-### 3) Run web dev server
+### 2) Configure web environment (optional)
+
+```bash
+cp apps/web/.env.example apps/web/.env.local
+```
+
+Example:
+
+```bash
+MARKDECK_CONTENT_ROOT=.
+MARKDECK_APP_TITLE=MarkDeck
+MARKDECK_IGNORE_PATTERNS=.git,node_modules
+```
+
+### 3) Run web development server
 
 ```bash
 npm run dev
 ```
 
 Open:
-
 - <http://localhost:3000>
 
-### 4) Production build check
-
-```bash
-npm run typecheck
-npm run build
-npm start
-```
-
-웹 앱은 `apps/web`에 위치합니다. 루트 `npm run build`는 desktop production과 동일한 `@markdeck/desktop build:web` 파이프라인을 타서 Next standalone 산출물 준비까지 함께 검증합니다.
-
-### 5) Run desktop app in development
+### 4) Run desktop app in development
 
 ```bash
 npm run desktop:dev
 ```
 
-Electron desktop 앱은 개발 모드에서 `apps/web`의 Next.js 서버를 자동으로 띄운 뒤, 해당 URL을 로드합니다. content root가 아직 설정되지 않았으면 현재 작업 디렉터리를 암묵적으로 쓰지 않고, 폴더 선택 UI를 먼저 보여줍니다.
+### 5) Typecheck / build
 
-### 6) Build and package desktop app
+```bash
+npm run typecheck
+npm run build
+```
+
+### 6) Build packaged desktop app
 
 ```bash
 npm run desktop:build:web
@@ -166,88 +230,70 @@ npm run desktop:pack
 npm run desktop:dist
 ```
 
-- `desktop:build:web`: Next.js standalone production bundle 생성 + desktop standalone 리소스 준비
-- `desktop:pack`: macOS `.app` unpacked 산출물 생성 (`release/desktop/mac-arm64/MarkDeck.app`)
-- `desktop:dist`: macOS zip 배포본 생성 시도
+`desktop:pack` creates a macOS unpacked app bundle such as:
 
-현재 방향은 **Electron이 web app을 감싸는 구조를 유지**하면서, production에서는 bundled Next standalone server를 Electron이 직접 띄우는 방식입니다.
+- `release/desktop/mac-arm64/MarkDeck.app`
 
-다만 desktop 아키텍처는 점진적으로 **main → IPC → renderer** 방향으로 옮기는 중입니다. search / browse / docs / asset read는 desktop에서 Electron main IPC를 우선 사용합니다. desktop renderer의 route state는 이제 React Router HashRouter 기반 client shell이 맡고, desktop 비동기 데이터 조회는 React Query(TanStack Query)로 정리하기 시작했습니다. embedded web server는 bootstrap 및 web 호환성 용도로만 남아 있습니다.
+---
 
-자세한 메모: `apps/web/docs/desktop-bootstrap.md`
+## CLI launch behavior
+
+Packaged desktop app supports opening a directory or markdown file from CLI.
+
+Examples:
+
+```bash
+MarkDeck /path/to/folder
+MarkDeck /path/to/file.md
+```
+
+Behavior:
+- passing a **directory** opens it as the content root
+- passing a **markdown file** opens its parent folder as content root and navigates directly to that document
+- if MarkDeck is already running, the existing instance receives the target instead of launching a duplicate instance
+
+---
 
 ## Environment variables
 
 | Name | Required | Description |
 | --- | --- | --- |
-| `MARKDECK_CONTENT_ROOT` | Yes | Markdown files will be exposed only under this directory |
+| `MARKDECK_CONTENT_ROOT` | No | Default content root for web/local runs. Desktop can also choose folders interactively. |
 | `MARKDECK_APP_TITLE` | No | App title shown in the UI |
 | `MARKDECK_IGNORE_PATTERNS` | No | Comma-separated names/patterns to hide from browsing, e.g. `.git,node_modules,*.log` |
 
+---
+
 ## Security notes
 
-이 프로젝트는 로컬 파일 시스템 문서를 웹에 노출합니다.
+MarkDeck reads local markdown content from the filesystem, so content root scope matters.
 
-그래서 아래 원칙이 중요합니다.
+Recommended:
+- keep content roots intentionally scoped
+- avoid exposing sensitive directories
+- if serving over network, put the web app behind proper auth/proxy layers
+- treat desktop file access as privileged and keep file IO inside Electron main where possible
 
-### 반드시 신경 써야 하는 점
+---
 
-- `MARKDECK_CONTENT_ROOT`를 너무 넓게 잡지 않는 것이 좋습니다.
-- 민감한 문서가 섞인 디렉터리를 그대로 공개하면 안 됩니다.
-- 공개 인터넷에 열 경우 인증 계층 없이 바로 노출하는 것은 권장하지 않습니다.
+## Roadmap / planning docs
 
-### 운영 시 권장
+- [`ROADMAP.md`](./ROADMAP.md)
+- [`TODO.md`](./TODO.md)
+- [`IMPROVEMENT.md`](./IMPROVEMENT.md)
 
-- reverse proxy 뒤에 배치
-- Basic Auth / OAuth / Cloudflare Access / Tailscale 적용
-- 문서 전용 디렉터리만 content root로 사용
-- 내부망 또는 사설 접근 환경 우선 고려
+---
 
-## Architecture
+## Next likely steps
 
-상세 설계 문서는 아래에 있습니다.
+- actual `.memo` file write / read
+- annotation anchor drift recovery
+- richer feedback export / sharing flow
+- reviewer metadata (author / time / thread)
+- translation actions for selected text / blocks
 
-- [`apps/web/docs/architecture.md`](./apps/web/docs/architecture.md)
-- [`docs/desktop-packaging.md`](./docs/desktop-packaging.md)
-- [`docs/desktop-architecture-review.md`](./docs/desktop-architecture-review.md)
-- [`docs/desktop-cache-strategy.md`](./docs/desktop-cache-strategy.md)
-- [`docs/platform-boundaries.md`](./docs/platform-boundaries.md)
-
-주요 설계 포인트:
-
-- 파일 시스템을 단일 source of truth로 사용
-- 서버 측 경로 검증으로 root escape 방지
-- 브라우징(`/browse`)과 문서 뷰(`/docs`) 라우트를 분리
-- 링크 해석을 앱 라우팅과 연결
-
-## Current status
-
-현재 프로젝트는 **초기 MVP 구현과 빌드 검증이 완료된 상태**입니다.
-
-이미 구현된 것:
-
-- 프로젝트 초기 스캐폴딩
-- 브라우저 화면
-- markdown 문서 렌더링
-- 문서 간 상대 링크 이동
-- Next.js 빌드/타입 검증 통과
-
-## Next steps
-
-추천 다음 작업:
-
-1. 코드 블록 syntax highlighting 추가
-2. breadcrumb / navigation 개선
-3. 최근 본 문서 목록 추가
-4. full-text search 추가
-5. 인증 계층 추가
-6. 이미지/첨부파일 링크 처리 정책 정리
-7. Obsidian-style wikilink 지원 검토
-
-## Repository
-
-- GitHub: <https://github.com/yoophi-a/markdeck>
+---
 
 ## License
 
-현재는 라이선스를 별도로 지정하지 않았습니다. 필요하면 다음 커밋에서 추가하면 됩니다.
+No explicit license has been added yet.
