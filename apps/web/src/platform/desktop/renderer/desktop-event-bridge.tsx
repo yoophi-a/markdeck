@@ -27,7 +27,8 @@ export function DesktopEventBridge() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const unsubscribeInvalidated = onDesktopContentInvalidated(() => {
+    const unsubscribeInvalidated = onDesktopContentInvalidated((payload) => {
+      window.dispatchEvent(new CustomEvent('markdeck:content-invalidated-ui', { detail: payload }));
       void invalidateDesktopContentQueries(queryClient);
     });
 

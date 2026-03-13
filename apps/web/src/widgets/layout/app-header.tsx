@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 import { SearchForm } from '@/features/search/ui/search-form';
 import { ThemeToggle } from '@/features/theme/ui/theme-toggle';
 import { executeDesktopCommand, isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
+import { DesktopRefreshStatus } from '@/platform/desktop/renderer/desktop-refresh-status';
 import { cn } from '@/shared/lib/utils';
 import { AppLink } from '@/shared/ui/app-link';
 import { Button, buttonVariants } from '@/shared/ui/button';
@@ -30,6 +31,7 @@ export function AppHeader() {
           <SearchForm />
         </Suspense>
         <ContentRootSelector />
+        <DesktopRefreshStatus />
         {desktop ? (
           <Button type="button" variant="outline" size="sm" onClick={() => void executeDesktopCommand('toggle-command-palette')}>
             <Command className="size-4" />

@@ -167,7 +167,8 @@ code {
 }
 
 .search-button,
-.theme-toggle {
+.theme-toggle,
+.desktop-refresh-status {
   min-height: 38px;
   padding: 0 12px;
   border-radius: 12px;
@@ -179,8 +180,15 @@ code {
 }
 
 .search-button:hover,
-.theme-toggle:hover {
+.theme-toggle:hover,
+.desktop-refresh-status:hover {
   background: var(--panel-2);
+}
+
+.desktop-refresh-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .content,
