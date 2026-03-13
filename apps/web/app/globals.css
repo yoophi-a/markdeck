@@ -378,6 +378,7 @@ code {
 }
 
 .document-resize-handle {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -390,9 +391,29 @@ code {
   color: var(--muted);
   cursor: col-resize;
   touch-action: none;
-  opacity: 0.55;
+  opacity: 0.85;
   transition: opacity 0.16s ease, background-color 0.16s ease, color 0.16s ease;
   justify-self: stretch;
+}
+
+.document-resize-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 56px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--line) 82%, var(--muted));
+  transform: translate(-50%, -50%);
+  transition: background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.document-resize-icon {
+  position: absolute;
+  bottom: 10px;
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
 }
 
 .document-resize-handle:hover,
@@ -400,6 +421,18 @@ code {
   opacity: 1;
   background: var(--list-bg);
   color: var(--text);
+}
+
+.document-resize-handle:hover .document-resize-grip,
+.document-resize-handle:focus-visible .document-resize-grip {
+  background: color-mix(in srgb, var(--accent) 55%, var(--line));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+
+.document-resize-handle:hover .document-resize-icon,
+.document-resize-handle:focus-visible .document-resize-icon {
+  opacity: 0.95;
+  transform: translateY(0);
 }
 
 body.is-resizing-document-layout {

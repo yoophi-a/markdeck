@@ -234,7 +234,8 @@ function ResizeHandle({
 
   return (
     <button type="button" className="document-resize-handle" onPointerDown={handlePointerDown} aria-label={ariaLabel} title={title}>
-      {icon === 'left' ? <PanelLeftClose className="size-3.5" /> : <PanelRightClose className="size-3.5" />}
+      <span className="document-resize-grip" aria-hidden="true" />
+      {icon === 'left' ? <PanelLeftClose className="size-3.5 document-resize-icon" /> : <PanelRightClose className="size-3.5 document-resize-icon" />}
     </button>
   );
 }
