@@ -658,11 +658,13 @@ function waitForWeb(url, timeoutMs = 30000) {
 }
 
 function createWebEnv() {
+  const configuredContentRoot = getConfiguredContentRoot();
+
   return {
     ...process.env,
     PORT: String(WEB_PORT),
     HOSTNAME: '127.0.0.1',
-    MARKDECK_CONTENT_ROOT: getContentRoot(),
+    ...(configuredContentRoot ? { MARKDECK_CONTENT_ROOT: configuredContentRoot } : {}),
   };
 }
 
@@ -916,12 +918,22 @@ app.whenReady().then(async () => {
   rebuildApplicationMenu();
   restartContentWatcher();
   createWindow();
-  await loadApp();
+
+  try {
+    await loadApp();
+  } catch (error) {
+    console.error('Failed to load MarkDeck desktop app', error);
+  }
 
   app.on('activate', async () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
-      await loadApp();
+
+      try {
+        await loadApp();
+      } catch (error) {
+        console.error('Failed to load MarkDeck desktop app on activate', error);
+      }
     }
   });
 });
