@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DesktopContentRootEmptyState, DesktopErrorFallback } from '@/platform/desktop/renderer/desktop-error-fallback';
 import { useDesktopContentRootQuery, useDesktopDocumentPageQuery } from '@/platform/desktop/renderer/desktop-queries';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
-import { createAnnotationId, createTimestamp, type AnnotationDocument, type DocumentAnnotation } from '@/shared/lib/annotations';
+import { buildBlockTextAnchor, createAnnotationId, createTimestamp, type AnnotationDocument, type DocumentAnnotation } from '@/shared/lib/annotations';
 import type { DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/shared/lib/markdown';
@@ -164,6 +164,43 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
         }}
         onToggleDeletion={({ blockId, blockText }) => {
           setAnnotations((current) => toggleDeletionAnnotation(current, blockId, blockText));
+        }}
+        onAddBlockHighlight={({ blockId, blockText }) => {
+          const anchor = buildBlockTextAnchor(blockId, blockText);
+          if (!anchor) {
+            return;
+          }
+
+          setAnnotations((current) => [
+            ...current,
+            {
+              id: createAnnotationId(),
+              kind: 'highlight',
+              color: 'yellow',
+              createdAt: createTimestamp(),
+              updatedAt: createTimestamp(),
+              anchor,
+            },
+          ]);
+        }}
+        onAddBlockComment={({ blockId, blockText, comment }) => {
+          const anchor = buildBlockTextAnchor(blockId, blockText);
+          if (!anchor) {
+            return;
+          }
+
+          setAnnotations((current) => [
+            ...current,
+            {
+              id: createAnnotationId(),
+              kind: 'comment',
+              color: 'yellow',
+              comment,
+              createdAt: createTimestamp(),
+              updatedAt: createTimestamp(),
+              anchor,
+            },
+          ]);
         }}
       />
       {selectionDraft && selectionPopoverPosition ? (

@@ -98,6 +98,22 @@ export function normalizeWhitespace(value: string) {
   return value.replace(/\s+/g, ' ').trim();
 }
 
+export function buildBlockTextAnchor(blockId: string, blockText: string): AnnotationTextAnchor | null {
+  const quote = normalizeWhitespace(blockText);
+  if (!quote) {
+    return null;
+  }
+
+  return {
+    kind: 'text-range',
+    blockId,
+    quote,
+    occurrence: 0,
+    prefix: '',
+    suffix: '',
+  };
+}
+
 export function countOccurrences(haystack: string, needle: string) {
   if (!needle) {
     return 0;

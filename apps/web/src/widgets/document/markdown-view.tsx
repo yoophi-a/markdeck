@@ -1,6 +1,6 @@
 'use client';
 
-import { MessageSquareText, Trash2 } from 'lucide-react';
+import { Highlighter, MessageSquarePlus, MessageSquareText, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -34,9 +34,20 @@ interface MarkdownViewProps {
   activeSelection?: SelectionDraft | null;
   onSelectionChange?: (selection: SelectionDraft | null) => void;
   onToggleDeletion?: (payload: { blockId: string; blockText: string }) => void;
+  onAddBlockHighlight?: (payload: { blockId: string; blockText: string }) => void;
+  onAddBlockComment?: (payload: { blockId: string; blockText: string; comment: string }) => void;
 }
 
-export function MarkdownView({ content, currentRelativePath, annotations = [], activeSelection = null, onSelectionChange, onToggleDeletion }: MarkdownViewProps) {
+export function MarkdownView({
+  content,
+  currentRelativePath,
+  annotations = [],
+  activeSelection = null,
+  onSelectionChange,
+  onToggleDeletion,
+  onAddBlockHighlight,
+  onAddBlockComment,
+}: MarkdownViewProps) {
   const createHeadingId = createSlugger();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const deletedBlockIds = useMemo(
@@ -221,6 +232,8 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], a
                 deleted={deletedBlockIds.has(blockId)}
                 comments={commentAnnotationsByBlockId.get(blockId) ?? []}
                 onToggleDeletion={onToggleDeletion}
+                onAddBlockHighlight={onAddBlockHighlight}
+                onAddBlockComment={onAddBlockComment}
               >
                 {children}
               </Heading>
@@ -238,6 +251,8 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], a
                 deleted={deletedBlockIds.has(blockId)}
                 comments={commentAnnotationsByBlockId.get(blockId) ?? []}
                 onToggleDeletion={onToggleDeletion}
+                onAddBlockHighlight={onAddBlockHighlight}
+                onAddBlockComment={onAddBlockComment}
               >
                 {children}
               </Heading>
@@ -255,6 +270,8 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], a
                 deleted={deletedBlockIds.has(blockId)}
                 comments={commentAnnotationsByBlockId.get(blockId) ?? []}
                 onToggleDeletion={onToggleDeletion}
+                onAddBlockHighlight={onAddBlockHighlight}
+                onAddBlockComment={onAddBlockComment}
               >
                 {children}
               </Heading>
@@ -271,6 +288,8 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], a
                 deleted={deletedBlockIds.has(blockId)}
                 comments={commentAnnotationsByBlockId.get(blockId) ?? []}
                 onToggleDeletion={onToggleDeletion}
+                onAddBlockHighlight={onAddBlockHighlight}
+                onAddBlockComment={onAddBlockComment}
               >
                 {children}
               </Block>
@@ -287,6 +306,8 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], a
                 deleted={deletedBlockIds.has(blockId)}
                 comments={commentAnnotationsByBlockId.get(blockId) ?? []}
                 onToggleDeletion={onToggleDeletion}
+                onAddBlockHighlight={onAddBlockHighlight}
+                onAddBlockComment={onAddBlockComment}
               >
                 {children}
               </Block>
@@ -303,6 +324,8 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], a
                 deleted={deletedBlockIds.has(blockId)}
                 comments={commentAnnotationsByBlockId.get(blockId) ?? []}
                 onToggleDeletion={onToggleDeletion}
+                onAddBlockHighlight={onAddBlockHighlight}
+                onAddBlockComment={onAddBlockComment}
               >
                 {children}
               </Block>
@@ -337,6 +360,8 @@ function Block({
   deleted,
   comments,
   onToggleDeletion,
+  onAddBlockHighlight,
+  onAddBlockComment,
   children,
 }: {
   levelTag: 'p' | 'li' | 'blockquote';
@@ -344,30 +369,26 @@ function Block({
   deleted: boolean;
   comments: CommentAnnotation[];
   onToggleDeletion?: (payload: { blockId: string; blockText: string }) => void;
+  onAddBlockHighlight?: (payload: { blockId: string; blockText: string }) => void;
+  onAddBlockComment?: (payload: { blockId: string; blockText: string; comment: string }) => void;
   children: React.ReactNode;
 }) {
   const blockId = createHeadingIdFromText(text);
+  const blockText = normalizeWhitespace(text);
   const Tag = levelTag;
 
   return (
     <Tag className="annotation-block" data-annotation-block-id={blockId} data-annotation-deleted={deleted ? 'true' : undefined}>
       <BlockCommentPreview comments={comments} />
-      {onToggleDeletion ? (
-        <Button
-          type="button"
-          variant={deleted ? 'destructive' : 'ghost'}
-          size="icon-xs"
-          className="annotation-delete-button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onToggleDeletion({ blockId, blockText: normalizeWhitespace(text) });
-          }}
-          title={deleted ? '삭제 표시 해제' : '이 문단 삭제 표시'}
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
-      ) : null}
+      <BlockQuickActions
+        blockId={blockId}
+        blockText={blockText}
+        deleted={deleted}
+        deleteTitle="이 문단 삭제 표시"
+        onToggleDeletion={onToggleDeletion}
+        onAddBlockHighlight={onAddBlockHighlight}
+        onAddBlockComment={onAddBlockComment}
+      />
       {children}
     </Tag>
   );
@@ -380,6 +401,8 @@ function Heading({
   deleted,
   comments,
   onToggleDeletion,
+  onAddBlockHighlight,
+  onAddBlockComment,
   children,
 }: {
   level: 1 | 2 | 3;
@@ -388,35 +411,155 @@ function Heading({
   deleted: boolean;
   comments: CommentAnnotation[];
   onToggleDeletion?: (payload: { blockId: string; blockText: string }) => void;
+  onAddBlockHighlight?: (payload: { blockId: string; blockText: string }) => void;
+  onAddBlockComment?: (payload: { blockId: string; blockText: string; comment: string }) => void;
   children: React.ReactNode;
 }) {
   const Tag = `h${level}` as const;
   const blockId = createHeadingIdFromText(text);
+  const blockText = normalizeWhitespace(text);
 
   return (
     <Tag id={id} className="annotation-block" data-annotation-block-id={blockId} data-annotation-deleted={deleted ? 'true' : undefined}>
       <BlockCommentPreview comments={comments} />
-      {onToggleDeletion ? (
-        <Button
-          type="button"
-          variant={deleted ? 'destructive' : 'ghost'}
-          size="icon-xs"
-          className="annotation-delete-button"
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            onToggleDeletion({ blockId, blockText: normalizeWhitespace(text) });
-          }}
-          title={deleted ? '삭제 표시 해제' : '이 헤더 삭제 표시'}
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
-      ) : null}
+      <BlockQuickActions
+        blockId={blockId}
+        blockText={blockText}
+        deleted={deleted}
+        deleteTitle="이 헤더 삭제 표시"
+        onToggleDeletion={onToggleDeletion}
+        onAddBlockHighlight={onAddBlockHighlight}
+        onAddBlockComment={onAddBlockComment}
+      />
       <a href={`#${id}`} className="heading-anchor">
         <span className="heading-anchor-mark">#</span>
       </a>
       {children}
     </Tag>
+  );
+}
+
+function BlockQuickActions({
+  blockId,
+  blockText,
+  deleted,
+  deleteTitle,
+  onToggleDeletion,
+  onAddBlockHighlight,
+  onAddBlockComment,
+}: {
+  blockId: string;
+  blockText: string;
+  deleted: boolean;
+  deleteTitle: string;
+  onToggleDeletion?: (payload: { blockId: string; blockText: string }) => void;
+  onAddBlockHighlight?: (payload: { blockId: string; blockText: string }) => void;
+  onAddBlockComment?: (payload: { blockId: string; blockText: string; comment: string }) => void;
+}) {
+  const [isCommentMode, setIsCommentMode] = useState(false);
+  const [commentDraft, setCommentDraft] = useState('');
+
+  if (!blockText || (!onToggleDeletion && !onAddBlockHighlight && !onAddBlockComment)) {
+    return null;
+  }
+
+  return (
+    <div
+      className="annotation-block-actions"
+      onMouseDown={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+    >
+      {onAddBlockHighlight ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-xs"
+          className="annotation-block-action-button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onAddBlockHighlight({ blockId, blockText });
+          }}
+          title="이 블록 전체 하이라이트"
+        >
+          <Highlighter className="size-3.5" />
+        </Button>
+      ) : null}
+      {onAddBlockComment ? (
+        <div className="annotation-block-comment-composer">
+          <Button
+            type="button"
+            variant={isCommentMode ? 'secondary' : 'ghost'}
+            size="icon-xs"
+            className="annotation-block-action-button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              setIsCommentMode((current) => !current);
+              setCommentDraft((current) => current || blockText);
+            }}
+            title="이 블록 전체에 코멘트 추가"
+          >
+            <MessageSquarePlus className="size-3.5" />
+          </Button>
+          {isCommentMode ? (
+            <div className="annotation-block-comment-popover" role="dialog" aria-label="블록 코멘트 작성">
+              <textarea value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="이 블록에 대한 코멘트를 적어 주세요" />
+              <div className="annotation-comment-actions">
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const trimmed = commentDraft.trim();
+                    if (!trimmed) {
+                      return;
+                    }
+
+                    onAddBlockComment({ blockId, blockText, comment: trimmed });
+                    setIsCommentMode(false);
+                    setCommentDraft('');
+                  }}
+                >
+                  코멘트 저장
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setIsCommentMode(false);
+                  }}
+                >
+                  닫기
+                </Button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      {onToggleDeletion ? (
+        <Button
+          type="button"
+          variant={deleted ? 'destructive' : 'ghost'}
+          size="icon-xs"
+          className="annotation-block-action-button"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            onToggleDeletion({ blockId, blockText });
+          }}
+          title={deleted ? '삭제 표시 해제' : deleteTitle}
+        >
+          <Trash2 className="size-3.5" />
+        </Button>
+      ) : null}
+    </div>
   );
 }
 

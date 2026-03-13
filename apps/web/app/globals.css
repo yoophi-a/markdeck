@@ -528,10 +528,53 @@ body.is-resizing-document-layout {
   transition: opacity 0.16s ease;
 }
 
+.annotation-block-actions {
+  position: absolute;
+  top: 0.1rem;
+  right: -6.9rem;
+  z-index: 2;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.annotation-block-action-button {
+  opacity: 0;
+  transition: opacity 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.annotation-block-comment-composer {
+  position: relative;
+}
+
+.annotation-block-comment-popover {
+  position: absolute;
+  top: 2rem;
+  right: 0;
+  width: min(320px, calc(100vw - 64px));
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.annotation-block-comment-popover textarea {
+  min-height: 88px;
+  width: 100%;
+  resize: vertical;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--input);
+  color: var(--text);
+  padding: 10px 12px;
+  font: inherit;
+}
+
 .annotation-comment-preview {
   position: absolute;
   top: 0.1rem;
-  right: -4.8rem;
+  right: -9.5rem;
   z-index: 2;
 }
 
@@ -592,12 +635,16 @@ body.is-resizing-document-layout {
 
 .annotation-block:hover .annotation-delete-button,
 .annotation-delete-button:focus-visible,
+.annotation-block:hover .annotation-block-action-button,
+.annotation-block-actions:focus-within .annotation-block-action-button,
 .annotation-block:hover .annotation-comment-indicator,
 .annotation-comment-preview:focus-within .annotation-comment-indicator,
 .annotation-comment-preview:hover .annotation-comment-indicator {
   opacity: 1;
 }
 
+.annotation-block:hover .annotation-block-action-button,
+.annotation-block-actions:focus-within .annotation-block-action-button,
 .annotation-comment-preview:hover .annotation-comment-indicator,
 .annotation-comment-preview:focus-within .annotation-comment-indicator {
   color: color-mix(in srgb, var(--accent) 72%, var(--text));
