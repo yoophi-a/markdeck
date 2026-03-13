@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useInRouterContext } from 'react-router-dom';
 
 import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
 import { getDesktopHashHref } from '@/shared/lib/app-routes';
@@ -12,6 +12,8 @@ interface AppLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
 }
 
 export function AppLink({ href, children, ...props }: AppLinkProps) {
+  const inRouterContext = useInRouterContext();
+
   if (href.startsWith('#') || href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('tel:')) {
     return (
       <a href={href} {...props}>
@@ -20,11 +22,19 @@ export function AppLink({ href, children, ...props }: AppLinkProps) {
     );
   }
 
-  if (isDesktopRenderer()) {
+  if (isDesktopRenderer() && inRouterContext) {
     return (
       <RouterLink to={href} {...props}>
         {children}
       </RouterLink>
+    );
+  }
+
+  if (isDesktopRenderer()) {
+    return (
+      <a href={getDesktopHashHref(href)} {...props}>
+        {children}
+      </a>
     );
   }
 
