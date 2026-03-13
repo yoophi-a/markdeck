@@ -210,6 +210,7 @@ npm run desktop:dist
 - [`apps/web/docs/architecture.md`](./apps/web/docs/architecture.md)
 - [`docs/desktop-packaging.md`](./docs/desktop-packaging.md)
 - [`docs/desktop-architecture-review.md`](./docs/desktop-architecture-review.md)
+- [`docs/desktop-cache-strategy.md`](./docs/desktop-cache-strategy.md)
 - [`docs/platform-boundaries.md`](./docs/platform-boundaries.md)
 
 주요 설계 포인트:

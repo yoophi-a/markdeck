@@ -78,3 +78,4 @@ web 환경은 기존 서버 경로를 유지한다.
 3. desktop의 비동기 조회 상태는 React Query query key 기준으로 정리해 loading/error/cache 재사용을 맞춘다.
 4. Next server path는 web compatibility 용도로만 유지한다.
 5. desktop 기능 구현 시 "server route를 먼저 만들고 desktop에서 재사용" 패턴을 더 늘리지 않는다.
+6. document / asset / search cache의 ownership은 Electron main에 두고, renderer는 invalidation 이벤트를 소비하는 쪽으로 유지한다. 자세한 정리: `docs/desktop-cache-strategy.md`
