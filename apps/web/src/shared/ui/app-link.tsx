@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { forwardRef } from 'react';
 import { Link as RouterLink, useInRouterContext } from 'react-router-dom';
 
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
@@ -11,13 +12,13 @@ interface AppLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
   children: React.ReactNode;
 }
 
-export function AppLink({ href, children, ...props }: AppLinkProps) {
+export const AppLink = forwardRef<HTMLAnchorElement, AppLinkProps>(function AppLink({ href, children, ...props }, ref) {
   const desktopRenderer = useDesktopRenderer();
   const inRouterContext = useInRouterContext();
 
   if (href.startsWith('#') || href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('tel:')) {
     return (
-      <a href={href} {...props}>
+      <a ref={ref} href={href} {...props}>
         {children}
       </a>
     );
@@ -33,33 +34,33 @@ export function AppLink({ href, children, ...props }: AppLinkProps) {
 
   if (desktopRenderer) {
     return (
-      <a href={getDesktopHashHref(href)} {...props}>
+      <a ref={ref} href={getDesktopHashHref(href)} {...props}>
         {children}
       </a>
     );
   }
 
   return (
-    <Link href={href} {...props}>
+    <Link href={href} ref={ref} {...props}>
       {children}
     </Link>
   );
-}
+});
 
-export function AppAnchorLink({ href, children, ...props }: AppLinkProps) {
+export const AppAnchorLink = forwardRef<HTMLAnchorElement, AppLinkProps>(function AppAnchorLink({ href, children, ...props }, ref) {
   const desktopRenderer = useDesktopRenderer();
 
   if (desktopRenderer && href.startsWith('/')) {
     return (
-      <a href={getDesktopHashHref(href)} {...props}>
+      <a ref={ref} href={getDesktopHashHref(href)} {...props}>
         {children}
       </a>
     );
   }
 
   return (
-    <a href={href} {...props}>
+    <a ref={ref} href={href} {...props}>
       {children}
     </a>
   );
-}
+});
