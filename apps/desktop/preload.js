@@ -25,6 +25,7 @@ contextBridge.exposeInMainWorld('markdeckDesktop', {
   readMarkdownDocument: (relativePath) => invoke('markdeck:read-markdown-document', relativePath),
   collectMarkdownRelativePaths: () => invoke('markdeck:collect-markdown-relative-paths'),
   searchMarkdownDocuments: (query) => invoke('markdeck:search-markdown-documents', query),
+  getSearchStatus: () => invoke('markdeck:get-search-status'),
   readAsset: (relativePath) => invoke('markdeck:read-asset', relativePath),
   executeCommand: (command, payload = null) => invoke('markdeck:execute-command', command, payload),
   onContentInvalidated: (listener) => subscribe('markdeck:content-invalidated', listener),

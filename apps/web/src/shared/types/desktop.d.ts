@@ -15,6 +15,7 @@ declare global {
       readMarkdownDocument: (relativePath: string) => Promise<DesktopApiResult<import('@/shared/lib/content-types').MarkdownDocument>>;
       collectMarkdownRelativePaths: () => Promise<DesktopApiResult<string[]>>;
       searchMarkdownDocuments: (query: string) => Promise<DesktopApiResult<import('@/shared/lib/content-types').SearchResult[]>>;
+      getSearchStatus: () => Promise<DesktopApiResult<{ documentCount: number; generatedAt: string; cachedQueryCount: number }>>;
       readAsset: (relativePath: string) => Promise<DesktopApiResult<import('@/shared/lib/content-types').AssetPayload | null>>;
       executeCommand: (command: string, payload?: unknown) => Promise<DesktopApiResult<unknown>>;
       onContentInvalidated: (listener: (payload: DesktopContentInvalidationEvent) => void) => () => void;

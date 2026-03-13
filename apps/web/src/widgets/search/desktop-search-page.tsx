@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { SearchForm } from '@/features/search/ui/search-form';
 import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
 import { DesktopContentRootEmptyState, DesktopErrorFallback } from '@/platform/desktop/renderer/desktop-error-fallback';
-import { useDesktopContentRootQuery, useDesktopSearchQuery } from '@/platform/desktop/renderer/desktop-queries';
+import { useDesktopContentRootQuery, useDesktopSearchQuery, useDesktopSearchStatusQuery } from '@/platform/desktop/renderer/desktop-queries';
 import type { SearchResult } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { toDocHref } from '@/shared/lib/routes';
@@ -21,6 +21,7 @@ export function DesktopSearchPage({ initialQuery, initialResults }: DesktopSearc
   const desktopRenderer = isDesktopRenderer();
   const contentRootQuery = useDesktopContentRootQuery(desktopRenderer);
   const resultsQuery = useDesktopSearchQuery(query, desktopRenderer);
+  const searchStatusQuery = useDesktopSearchStatusQuery(desktopRenderer);
   const results = desktopRenderer ? resultsQuery.data ?? [] : initialResults;
 
   useEffect(() => {
@@ -54,6 +55,11 @@ export function DesktopSearchPage({ initialQuery, initialResults }: DesktopSearc
         <h1>문서 검색</h1>
         <p className="muted">파일명, 제목, 본문 내용을 기준으로 markdown 문서를 찾습니다.</p>
         <SearchForm />
+        {desktopRenderer && searchStatusQuery.data ? (
+          <p className="muted mono search-status-line">
+            indexed docs: {searchStatusQuery.data.documentCount} · cached queries: {searchStatusQuery.data.cachedQueryCount} · index built: {formatDateTime(searchStatusQuery.data.generatedAt)}
+          </p>
+        ) : null}
       </div>
 
       {query ? (

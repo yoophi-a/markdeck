@@ -191,6 +191,10 @@ code {
   gap: 8px;
 }
 
+.search-status-line {
+  margin-top: 12px;
+}
+
 .content,
 .stack {
   display: flex;

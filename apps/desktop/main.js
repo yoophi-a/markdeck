@@ -422,6 +422,16 @@ async function searchMarkdownDocuments(query) {
   return results;
 }
 
+async function getSearchStatus() {
+  const index = await ensureSearchIndex();
+
+  return {
+    documentCount: index.documents.length,
+    generatedAt: index.generatedAt,
+    cachedQueryCount: searchResultsCache.size,
+  };
+}
+
 async function readAsset(relativePath) {
   const normalizedPath = normalizeRelativePath(relativePath);
   const absolutePath = assertSafePath(normalizedPath);
@@ -898,6 +908,7 @@ handleDesktopIpc('markdeck:build-document-tree', (relativePath = '', depth = 2) 
 handleDesktopIpc('markdeck:read-markdown-document', (relativePath) => readMarkdownDocument(relativePath));
 handleDesktopIpc('markdeck:collect-markdown-relative-paths', () => collectMarkdownRelativePaths());
 handleDesktopIpc('markdeck:search-markdown-documents', (query) => searchMarkdownDocuments(query));
+handleDesktopIpc('markdeck:get-search-status', () => getSearchStatus());
 handleDesktopIpc('markdeck:read-asset', (relativePath) => readAsset(relativePath));
 handleDesktopIpc('markdeck:execute-command', (command, payload = null) => executeDesktopCommand(command, payload));
 

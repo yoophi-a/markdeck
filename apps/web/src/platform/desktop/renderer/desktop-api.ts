@@ -77,6 +77,10 @@ export function searchDesktopMarkdownDocuments(query: string): Promise<SearchRes
   return unwrapDesktopResult(getDesktopApi()?.searchMarkdownDocuments(query), []);
 }
 
+export function getDesktopSearchStatus(): Promise<{ documentCount: number; generatedAt: string; cachedQueryCount: number }> {
+  return unwrapDesktopResult(getDesktopApi()?.getSearchStatus(), { documentCount: 0, generatedAt: '', cachedQueryCount: 0 });
+}
+
 export function readDesktopAsset(relativePath: string): Promise<AssetPayload | null> {
   return unwrapDesktopResult(getDesktopApi()?.readAsset(relativePath), null);
 }

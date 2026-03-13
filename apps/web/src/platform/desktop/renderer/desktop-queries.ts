@@ -8,6 +8,7 @@ import {
   collectDesktopMarkdownRelativePaths,
   getDesktopContentRoot,
   getDesktopRecentContentRoots,
+  getDesktopSearchStatus,
   listDesktopDirectory,
   openDesktopRecentContentRoot,
   readDesktopAsset,
@@ -25,6 +26,7 @@ export const desktopQueryKeys = {
   knownDocuments: ['desktop', 'known-documents'] as const,
   documentPage: (relativePath: string) => ['desktop', 'document-page', relativePath] as const,
   search: (query: string) => ['desktop', 'search', query] as const,
+  searchStatus: ['desktop', 'search-status'] as const,
   asset: (relativePath: string) => ['desktop', 'asset', relativePath] as const,
   recentDocuments: ['desktop', 'recent-documents'] as const,
   pinnedDocuments: ['desktop', 'pinned-documents'] as const,
@@ -104,6 +106,16 @@ export function useDesktopSearchQuery(query: string, enabled = true) {
     queryKey: desktopQueryKeys.search(query),
     queryFn: () => searchDesktopMarkdownDocuments(query),
     enabled: enabled && isDesktopRenderer() && Boolean(query.trim()),
+    staleTime: 60_000,
+  });
+}
+
+export function useDesktopSearchStatusQuery(enabled = true) {
+  return useQuery({
+    queryKey: desktopQueryKeys.searchStatus,
+    queryFn: () => getDesktopSearchStatus(),
+    enabled: enabled && isDesktopRenderer(),
+    staleTime: 30_000,
   });
 }
 
@@ -163,6 +175,7 @@ export function invalidateDesktopContentQueries(queryClient: ReturnType<typeof u
     queryClient.invalidateQueries({ queryKey: ['desktop', 'document-page'] }),
     queryClient.invalidateQueries({ queryKey: desktopQueryKeys.knownDocuments }),
     queryClient.invalidateQueries({ queryKey: ['desktop', 'search'] }),
+    queryClient.invalidateQueries({ queryKey: desktopQueryKeys.searchStatus }),
     queryClient.invalidateQueries({ queryKey: ['desktop', 'asset'] }),
   ]);
 }
