@@ -446,6 +446,19 @@ body.is-resizing-document-layout {
   top: 24px;
 }
 
+.tree-card {
+  max-height: calc(100vh - 48px);
+}
+
+.tree-card-content {
+  min-height: 0;
+}
+
+.tree-scroll-area {
+  height: min(100vh - 148px, 100%);
+  max-height: calc(100vh - 148px);
+}
+
 .document-layout-toolbar {
   display: flex;
   align-items: flex-start;

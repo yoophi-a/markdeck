@@ -100,8 +100,8 @@ export function DocumentTree({ title = '파일과 폴더', nodes, activeRelative
             {title}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ScrollArea className="max-h-[70vh] pr-3">
+        <CardContent className="tree-card-content">
+          <ScrollArea className="tree-scroll-area pr-3">
             <ul className="document-tree-list">
               {treeNodes.map((node) => (
                 <TreeNode key={`${node.type}:${node.relativePath}`} node={node} activeRelativePath={activeRelativePath} depth={0} expandedPaths={expandedPaths} loadingPaths={queryPath ? new Set([queryPath]) : new Set()} onToggle={handleToggle} />
