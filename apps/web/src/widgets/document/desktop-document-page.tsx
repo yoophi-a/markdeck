@@ -44,6 +44,7 @@ interface SelectionDraft {
   prefix: string;
   suffix: string;
   rect: { top: number; left: number; bottom: number };
+  range: Range;
 }
 
 export function DesktopDocumentPage({ slug, initialDocument = null, initialKnownDocuments, initialSidebarTree }: DesktopDocumentPageProps) {
@@ -134,6 +135,14 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
 
   const directorySegments = slug.slice(0, -1);
   const directoryPath = directorySegments.join('/');
+  const restoreSelectionDraft = () => {
+    if (!selectionDraft) {
+      return;
+    }
+
+    restoreSelectionRange(selectionDraft.range);
+  };
+
   const documentArticle = (
     <article className="card markdown-body document-card annotation-document-shell">
       <MarkdownView
@@ -149,9 +158,22 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
         }}
       />
       {selectionDraft ? (
-        <div className="annotation-selection-popover" style={{ top: `${selectionDraft.rect.bottom + 8}px`, left: `${selectionDraft.rect.left}px` }}>
+        <div
+          className="annotation-selection-popover"
+          style={{ top: `${selectionDraft.rect.bottom + 8}px`, left: `${selectionDraft.rect.left}px` }}
+          onMouseDownCapture={(event) => {
+            const target = event.target as HTMLElement;
+            if (target.closest('textarea, input')) {
+              return;
+            }
+
+            event.preventDefault();
+            restoreSelectionDraft();
+          }}
+        >
           <div className="annotation-selection-toolbar">
             <Button type="button" size="sm" onClick={() => {
+              restoreSelectionDraft();
               const annotation: HighlightAnnotation = {
                 id: createAnnotationId(),
                 kind: 'highlight',
@@ -170,14 +192,23 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
               setAnnotations((current) => [...current, annotation]);
               setSelectionDraft(null);
             }}>하이라이트</Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => setCommentDraft((current) => current || selectionDraft.text)}>코멘트</Button>
+            <Button type="button" size="sm" variant="outline" onClick={() => {
+              restoreSelectionDraft();
+              setCommentDraft((current) => current || selectionDraft.text);
+            }}>코멘트</Button>
             <Button type="button" size="sm" variant="ghost" onClick={() => setSelectionDraft(null)}>닫기</Button>
           </div>
           {commentDraft ? (
             <div className="annotation-comment-form">
-              <textarea value={commentDraft} onChange={(event) => setCommentDraft(event.target.value)} placeholder="선택한 영역에 대한 코멘트를 적어 주세요" />
+              <textarea
+                value={commentDraft}
+                onChange={(event) => setCommentDraft(event.target.value)}
+                onFocus={restoreSelectionDraft}
+                placeholder="선택한 영역에 대한 코멘트를 적어 주세요"
+              />
               <div className="annotation-comment-actions">
                 <Button type="button" size="sm" onClick={() => {
+                  restoreSelectionDraft();
                   const trimmed = commentDraft.trim();
                   if (!trimmed) {
                     return;
@@ -299,6 +330,20 @@ function writeAnnotations(relativePath: string, annotations: DocumentAnnotation[
   }
 
   window.localStorage.setItem(annotationStorageKey(relativePath), JSON.stringify(annotations));
+}
+
+function restoreSelectionRange(range: Range) {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  const selection = window.getSelection();
+  if (!selection) {
+    return;
+  }
+
+  selection.removeAllRanges();
+  selection.addRange(range.cloneRange());
 }
 
 function toggleDeletionAnnotation(current: DocumentAnnotation[], blockId: string, blockText: string) {

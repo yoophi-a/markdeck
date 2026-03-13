@@ -24,6 +24,7 @@ interface SelectionDraft {
   prefix: string;
   suffix: string;
   rect: { top: number; left: number; bottom: number };
+  range: Range;
 }
 
 interface MarkdownViewProps {
@@ -124,6 +125,7 @@ export function MarkdownView({ content, currentRelativePath, annotations = [], o
         left: rect.left + window.scrollX,
         bottom: rect.bottom + window.scrollY,
       },
+      range: range.cloneRange(),
     });
   }
 
