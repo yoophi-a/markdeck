@@ -61,6 +61,11 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
   }
   const directorySegments = slug.slice(0, -1);
   const directoryPath = directorySegments.join('/');
+  const documentArticle = (
+    <article className="card markdown-body document-card">
+      <MarkdownView content={content} currentRelativePath={document.relativePath} />
+    </article>
+  );
 
   return (
     <section className="stack document-page">
@@ -88,13 +93,12 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
         tree={<DocumentTree title="현재 폴더" nodes={sidebarTree} activeRelativePath={document.relativePath} />}
         document={
           <>
-            <article className="card markdown-body document-card">
-              <MarkdownView content={content} currentRelativePath={document.relativePath} />
-            </article>
+            {documentArticle}
             <PinnedDocuments currentDocument={{ relativePath: document.relativePath, title: document.title }} emptyMessage="자주 보는 문서를 pin 하면 여기에 고정됩니다." />
             <RecentDocuments currentDocument={{ relativePath: document.relativePath, title: document.title, viewedAt: document.updatedAt }} emptyMessage="이 문서를 보기 시작하면 최근 본 문서가 여기에 쌓입니다." />
           </>
         }
+        maximizedDocument={documentArticle}
         toc={<TableOfContents headings={headings} />}
       />
     </section>

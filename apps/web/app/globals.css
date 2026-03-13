@@ -362,12 +362,8 @@ code {
   grid-template-columns: 280px minmax(0, 1fr) 280px;
 }
 
-.document-layout.compact {
-  grid-template-columns: minmax(0, 1fr) 240px;
-}
-
-.document-layout.with-tree.compact {
-  grid-template-columns: 240px minmax(0, 1fr) 240px;
+.document-layout.is-maximized {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .document-main,
@@ -398,6 +394,19 @@ code {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+}
+
+.document-maximized-shell {
+  position: relative;
+}
+
+.document-maximized-restore {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 20;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(10px);
 }
 
 .document-card {
@@ -899,6 +908,11 @@ code {
     position: static;
     opacity: 1;
     margin-right: 6px;
+  }
+
+  .document-maximized-restore {
+    right: 16px;
+    bottom: 16px;
   }
 }
 
