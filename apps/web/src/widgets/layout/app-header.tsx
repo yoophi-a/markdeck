@@ -6,7 +6,7 @@ import { Suspense } from 'react';
 import { SearchForm } from '@/features/search/ui/search-form';
 import { ThemeToggle } from '@/features/theme/ui/theme-toggle';
 import { executeDesktopCommand } from '@/platform/desktop/renderer/desktop-api';
-import { DesktopRefreshStatus } from '@/platform/desktop/renderer/desktop-refresh-status';
+import { DesktopRefreshStatus } from '@/widgets/desktop/refresh-status/ui/desktop-refresh-status';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
 import { cn } from '@/shared/lib/utils';
 import { AppLink } from '@/shared/ui/app-link';

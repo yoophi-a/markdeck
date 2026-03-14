@@ -170,6 +170,11 @@ markdeck/
     web/
       app/
       src/
+        shared/
+        features/
+        widgets/
+        views/
+          desktop/
       docs/
       package.json
     desktop/
@@ -184,6 +189,13 @@ markdeck/
   pnpm-workspace.yaml
   tsconfig.base.json
 ```
+
+renderer 쪽은 현재 실용적인 FSD 방향으로 정리 중입니다.
+
+- `platform/desktop/renderer` → desktop renderer bootstrap / bridge / IPC adapter
+- `views/desktop/*` → desktop route 단위 page composition (`src/pages`는 Next.js 예약 경로라 practical equivalent로 분리)
+- `widgets/desktop/*` → desktop shell 주변 UI(command palette, shortcut help, refresh status)
+- `widgets/document|navigation|layout` → page 조합에 재사용되는 UI 블록
 
 ---
 
@@ -201,6 +213,7 @@ markdeck/
 
 ```bash
 npm run desktop:test
+npx pnpm --filter @markdeck/web test
 npm run typecheck
 npm run desktop:build:web
 ```

@@ -22,6 +22,7 @@ import { PinnedDocuments } from '@/widgets/document/pinned-documents';
 import { RecentDocuments } from '@/widgets/document/recent-documents';
 import { TableOfContents } from '@/widgets/document/table-of-contents';
 import { Breadcrumbs } from '@/widgets/navigation/breadcrumbs';
+import { summarizeDocument } from '../lib/document-summary';
 
 interface DesktopDocumentPageProps {
   slug: string[];
@@ -274,20 +275,6 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
       />
     </section>
   );
-}
-
-function summarizeDocument(content: string, headingCount: number) {
-  const compact = content.replace(/```[\s\S]*?```/g, ' ').replace(/`[^`]+`/g, ' ');
-  const wordCount = compact.trim().split(/\s+/).filter(Boolean).length;
-  const linkCount = [...content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)].length;
-  const imageCount = [...content.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)].length;
-
-  return {
-    headingCount,
-    linkCount,
-    imageCount,
-    readingMinutes: Math.max(1, Math.ceil(wordCount / 220)),
-  };
 }
 
 function annotationStorageKey(relativePath: string) {

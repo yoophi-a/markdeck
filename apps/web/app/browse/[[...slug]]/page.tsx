@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 
 import { listDirectory } from '@/platform/web/server/content-fs';
 import { joinSegments } from '@/shared/lib/format';
-import { DesktopBrowserContent } from '@/widgets/content/desktop-browser-content';
+import { DesktopBrowserContent } from '@/views/desktop/browse/ui/desktop-browser-page';
 
 export default async function BrowsePage({ params }: { params: Promise<{ slug?: string[] }> }) {
   const resolvedParams = await params;

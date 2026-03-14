@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 
 import { buildDocumentTree, collectMarkdownRelativePaths, readMarkdownDocument } from '@/platform/web/server/content-fs';
 import { joinSegments } from '@/shared/lib/format';
-import { DesktopDocumentPage } from '@/widgets/document/desktop-document-page';
+import { DesktopDocumentPage } from '@/views/desktop/document/ui/desktop-document-page';
 
 export default async function DocumentPage({ params }: { params: Promise<{ slug: string[] }> }) {
   const resolvedParams = await params;

@@ -17,7 +17,7 @@ export function SearchForm() {
   const desktop = isDesktopRenderer();
   const [desktopQuery, setDesktopQuery] = useState('');
   const [desktopPathname, setDesktopPathname] = useState('/');
-  const currentQuery = desktop ? desktopQuery : nextSearchParams.get('q') ?? '';
+  const currentQuery = desktop ? desktopQuery : nextSearchParams?.get('q') ?? '';
   const [query, setQuery] = useState(currentQuery);
 
   useEffect(() => {

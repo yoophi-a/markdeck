@@ -4,10 +4,10 @@ import { useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { parseAppRoute } from '@/shared/lib/app-routes';
-import { DesktopBrowserContent } from '@/widgets/content/desktop-browser-content';
-import { DesktopDocumentPage } from '@/widgets/document/desktop-document-page';
-import { DesktopSearchPage } from '@/widgets/search/desktop-search-page';
-import { DesktopHomePage } from './desktop-home-page';
+import { DesktopBrowserContent } from '@/views/desktop/browse/ui/desktop-browser-page';
+import { DesktopDocumentPage } from '@/views/desktop/document/ui/desktop-document-page';
+import { DesktopHomePage } from '@/views/desktop/home/ui/desktop-home-page';
+import { DesktopSearchPage } from '@/views/desktop/search/ui/desktop-search-page';
 
 export function DesktopRendererRouterBody() {
   const location = useLocation();

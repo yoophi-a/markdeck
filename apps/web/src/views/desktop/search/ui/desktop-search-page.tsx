@@ -10,6 +10,7 @@ import type { SearchResult } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { toDocHref } from '@/shared/lib/routes';
 import { AppLink } from '@/shared/ui/app-link';
+import { buildHighlightSegments } from '../lib/highlight-query';
 
 interface DesktopSearchPageProps {
   initialQuery: string;
@@ -105,25 +106,13 @@ export function DesktopSearchPage({ initialQuery, initialResults }: DesktopSearc
 }
 
 function HighlightedText({ text, query }: { text: string; query: string }) {
-  const normalizedQuery = query.trim();
-
-  if (!normalizedQuery) {
-    return text;
-  }
-
-  const segments = text.split(new RegExp(`(${escapeRegExp(normalizedQuery)})`, 'gi'));
-
-  return segments.map((segment, index) =>
-    segment.toLowerCase() === normalizedQuery.toLowerCase() ? (
-      <mark key={`${segment}-${index}`} className="search-highlight">
-        {segment}
+  return buildHighlightSegments(text, query).map((segment, index) =>
+    segment.matched ? (
+      <mark key={`${segment.text}-${index}`} className="search-highlight">
+        {segment.text}
       </mark>
     ) : (
-      segment
+      segment.text
     )
   );
-}
-
-function escapeRegExp(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
