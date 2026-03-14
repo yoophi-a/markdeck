@@ -273,3 +273,111 @@ test('watcher reload flow invalidates normalized paths and emits content invalid
   assert.equal(harness.emittedEvents[0].payload.relativePath, 'normalized/notes/guide.md');
   assert.equal(harness.emittedEvents[0].payload.reason, 'watcher');
 });
+
+test('launch targets stay queued until the shell becomes ready, then apply the latest markdown target', (t) => {
+  const repositoryState = installContentRepositorySpies(t);
+  let ready = false;
+  const harness = createHarness({
+    initialConfig: { contentRoot: '/initial', recentContentRoots: ['/initial'] },
+    canApplyTargetNow: () => ready,
+  });
+  const firstTarget = {
+    contentRoot: '/queued-one',
+    relativeDocumentPath: null,
+    sourcePath: '/queued-one',
+    targetType: 'directory',
+  };
+  const latestTarget = {
+    contentRoot: '/queued-two',
+    relativeDocumentPath: 'docs/guide.md',
+    sourcePath: '/queued-two/docs/guide.md',
+    targetType: 'markdown-file',
+  };
+
+  assert.equal(harness.service.queueOrApplyLaunchTarget(firstTarget), false);
+  assert.equal(harness.service.queueOrApplyLaunchTarget(latestTarget), false);
+  assert.equal(harness.emittedEvents.length, 0);
+
+  ready = true;
+  assert.equal(harness.service.applyPendingLaunchTarget(), true);
+
+  assert.equal(harness.configStore.snapshot().contentRoot, path.resolve('/queued-two'));
+  assert.equal(repositoryState.invalidateAllCalls, 1);
+  assert.deepEqual(
+    harness.emittedEvents.map((event) => event.channel),
+    ['markdeck:content-root-changed', 'markdeck:command']
+  );
+  assert.equal(harness.emittedEvents[1].payload.command, 'open-launch-target');
+  assert.deepEqual(harness.emittedEvents[1].payload.payload, latestTarget);
+});
+
+test('chooseContentRoot updates config, recents, watcher, and emits a content-root change when a folder is selected', async (t) => {
+  const repositoryState = installContentRepositorySpies(t);
+  const harness = createHarness({
+    initialConfig: { contentRoot: '/initial', recentContentRoots: ['/older'] },
+    chooseDirectory: async () => ({ canceled: false, filePaths: ['/picked/root'] }),
+  });
+
+  const selected = await harness.service.executeDesktopCommand('open-content-root');
+
+  assert.equal(selected, '/picked/root');
+  assert.equal(harness.configStore.snapshot().contentRoot, path.resolve('/picked/root'));
+  assert.deepEqual(harness.configStore.snapshot().recentContentRoots, [path.resolve('/picked/root'), path.resolve('/older')]);
+  assert.equal(repositoryState.invalidateAllCalls, 1);
+  assert.equal(harness.restartCalls.length, 1);
+  assert.equal(harness.emittedEvents.length, 1);
+  assert.equal(harness.emittedEvents[0].channel, 'markdeck:content-root-changed');
+  assert.equal(harness.emittedEvents[0].payload.contentRoot, path.resolve('/picked/root'));
+});
+
+test('openRecentContentRoot refreshes the active root and watcher for valid recent folders', (t) => {
+  const repositoryState = installContentRepositorySpies(t, {
+    pathExists(targetPath) {
+      return targetPath === '/recent/docs';
+    },
+  });
+  const harness = createHarness({
+    initialConfig: { contentRoot: '/initial', recentContentRoots: ['/recent/docs', '/older'] },
+  });
+
+  const opened = harness.service.openRecentContentRoot('/recent/docs');
+
+  assert.equal(opened, '/recent/docs');
+  assert.equal(harness.configStore.snapshot().contentRoot, path.resolve('/recent/docs'));
+  assert.deepEqual(harness.configStore.snapshot().recentContentRoots, [path.resolve('/recent/docs'), path.resolve('/older')]);
+  assert.deepEqual(repositoryState.pathExistsCalls, ['/recent/docs']);
+  assert.equal(repositoryState.invalidateAllCalls, 1);
+  assert.equal(harness.restartCalls.length, 1);
+  assert.equal(harness.emittedEvents[0].channel, 'markdeck:content-root-changed');
+});
+
+test('watcher error reload invalidates all content and restarts the watcher', (t) => {
+  const repositoryState = installContentRepositorySpies(t);
+  const harness = createHarness({ initialConfig: { contentRoot: '/docs', recentContentRoots: ['/docs'] } });
+
+  harness.service.restartContentWatcher();
+  harness.restartCalls[0].onError();
+
+  assert.equal(harness.scheduledReloads.length, 1);
+  harness.flushScheduledReload();
+
+  assert.deepEqual(repositoryState.invalidatedPaths, [null]);
+  assert.equal(harness.emittedEvents[0].channel, 'markdeck:content-invalidated');
+  assert.equal(harness.emittedEvents[0].payload.relativePath, null);
+  assert.equal(harness.emittedEvents[0].payload.reason, 'watcher-error');
+  assert.equal(harness.restartCalls.length, 2);
+});
+
+test('watcher change events with blank filenames trigger a full invalidation instead of a path-specific refresh', (t) => {
+  const repositoryState = installContentRepositorySpies(t);
+  const harness = createHarness({ initialConfig: { contentRoot: '/docs', recentContentRoots: ['/docs'] } });
+
+  harness.service.restartContentWatcher();
+  harness.restartCalls[0].onContentChanged('   ');
+  harness.flushScheduledReload();
+
+  assert.deepEqual(repositoryState.normalizeRelativePathCalls, []);
+  assert.deepEqual(repositoryState.invalidatedPaths, [null]);
+  assert.equal(harness.emittedEvents[0].payload.relativePath, null);
+  assert.equal(harness.emittedEvents[0].payload.reason, 'watcher');
+});
