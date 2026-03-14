@@ -381,3 +381,37 @@ test('watcher change events with blank filenames trigger a full invalidation ins
   assert.equal(harness.emittedEvents[0].payload.relativePath, null);
   assert.equal(harness.emittedEvents[0].payload.reason, 'watcher');
 });
+
+test('createDesktopMainService validates required application ports up front', (t) => {
+  installContentRepositorySpies(t);
+  delete require.cache[require.resolve('./main/application/create-desktop-main-service')];
+  const { createDesktopMainService } = require('./main/application/create-desktop-main-service');
+
+  assert.throws(
+    () =>
+      createDesktopMainService({
+        configStore: { read() { return {}; } },
+        shell: {
+          canApplyTargetNow() { return true; },
+          emitEvent() {},
+          focusMainWindow() {},
+          handleIpc() {},
+          chooseDirectory: async () => ({ canceled: true, filePaths: [] }),
+          resolvePath(value) { return value; },
+        },
+        watcher: {
+          scheduleReload() {},
+          restart() {},
+          close() {},
+        },
+        menuAdapter: {
+          buildTemplate() { return []; },
+          set() {},
+        },
+      }),
+    {
+      name: 'TypeError',
+      message: 'Expected configStore.write to be a function',
+    }
+  );
+});

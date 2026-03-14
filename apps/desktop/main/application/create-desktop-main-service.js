@@ -1,11 +1,14 @@
 const { createLaunchTargetCoordinator, getConfiguredContentRoot, getIgnorePatterns, getRecentContentRoots, mergeRecentContentRoots } = require('../core/desktop-core');
 const { createContentRepository } = require('../adapters/node/content-repository');
+const { createDesktopMainPorts } = require('./desktop-main-ports');
 
 function createDesktopMainService({ env = process.env, configStore, shell, watcher, menuAdapter }) {
-  let desktopConfig = configStore.read();
+  const ports = createDesktopMainPorts({ configStore, shell, watcher, menuAdapter });
+  const { configStore: configStorePort, shell: shellPort, watcher: watcherPort, menuAdapter: menuAdapterPort } = ports;
+  let desktopConfig = configStorePort.read();
 
   function writeConfig(nextConfig) {
-    desktopConfig = configStore.write(nextConfig);
+    desktopConfig = configStorePort.write(nextConfig);
     rebuildApplicationMenu();
     return desktopConfig;
   }
@@ -52,11 +55,11 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
   });
 
   function emitDesktopEvent(channel, payload) {
-    shell.emitEvent(channel, payload);
+    shellPort.emitEvent(channel, payload);
   }
 
   function focusMainWindow() {
-    shell.focusMainWindow();
+    shellPort.focusMainWindow();
   }
 
   function sendDesktopCommand(command, payload = null) {
@@ -69,7 +72,7 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
   }
 
   function setContentRoot(contentRoot) {
-    const normalizedRoot = contentRoot ? shell.resolvePath(contentRoot) : null;
+    const normalizedRoot = contentRoot ? shellPort.resolvePath(contentRoot) : null;
     const recentContentRoots = mergeRecentContentRoots(desktopConfig.recentContentRoots, normalizedRoot);
 
     writeConfig({
@@ -109,7 +112,7 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
 
   const launchTargetCoordinator = createLaunchTargetCoordinator({
     applyLaunchTarget,
-    canApplyTargetNow: () => shell.canApplyTargetNow(),
+    canApplyTargetNow: () => shellPort.canApplyTargetNow(),
   });
 
   function emitContentInvalidated(relativePath = null, reason = 'unknown') {
@@ -123,13 +126,13 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
   }
 
   function scheduleContentReload(relativePath, reason) {
-    watcher.scheduleReload(() => {
+    watcherPort.scheduleReload(() => {
       emitContentInvalidated(relativePath, reason);
     });
   }
 
   function restartContentWatcher() {
-    watcher.restart({
+    watcherPort.restart({
       contentRoot: getConfiguredDesktopContentRoot(),
       onContentChanged: (filename) => {
         const relativePath = typeof filename === 'string' && filename.trim() ? contentRepository.normalizeRelativePath(filename) : null;
@@ -167,7 +170,7 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
   }
 
   async function chooseContentRoot() {
-    const result = await shell.chooseDirectory({
+    const result = await shellPort.chooseDirectory({
       defaultPath: desktopConfig.contentRoot || undefined,
     });
 
@@ -222,16 +225,16 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
   }
 
   function rebuildApplicationMenu() {
-    const template = menuAdapter.buildTemplate({
+    const template = menuAdapterPort.buildTemplate({
       recentContentRoots: getDesktopRecentContentRoots(),
       onCommand: executeDesktopCommand,
       onOpenRecentContentRoot: openRecentContentRoot,
     });
-    menuAdapter.set(template);
+    menuAdapterPort.set(template);
   }
 
   function handleDesktopIpc(channel, handler) {
-    shell.handleIpc(channel, async (...args) => {
+    shellPort.handleIpc(channel, async (...args) => {
       try {
         const data = await handler(...args);
         return { ok: true, data };
@@ -269,7 +272,7 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
   }
 
   function shutdown() {
-    watcher.close();
+    watcherPort.close();
   }
 
   return {
