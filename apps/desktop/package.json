@@ -27,6 +27,7 @@
     "files": [
       "main.js",
       "main-core.js",
+      "main/**/*",
       "preload.js",
       "package.json",
       "scripts/**/*"
