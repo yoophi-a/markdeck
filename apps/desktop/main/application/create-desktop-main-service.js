@@ -1,11 +1,18 @@
-const { createLaunchTargetCoordinator, getConfiguredContentRoot, getIgnorePatterns, getRecentContentRoots, mergeRecentContentRoots } = require('../core/desktop-core');
+const { getConfiguredContentRoot, getIgnorePatterns, getRecentContentRoots } = require('../core/desktop-core');
 const { createContentRepository } = require('../adapters/node/content-repository');
 const { createDesktopMainPorts } = require('./desktop-main-ports');
+const { createContentRootUseCases } = require('./content-root-use-cases');
+const { createContentRefreshOrchestrator } = require('./content-refresh-orchestrator');
+const { createLaunchTargetUseCases } = require('./launch-target-use-cases');
 
 function createDesktopMainService({ env = process.env, configStore, shell, watcher, menuAdapter }) {
   const ports = createDesktopMainPorts({ configStore, shell, watcher, menuAdapter });
   const { configStore: configStorePort, shell: shellPort, watcher: watcherPort, menuAdapter: menuAdapterPort } = ports;
   let desktopConfig = configStorePort.read();
+
+  function getDesktopConfig() {
+    return desktopConfig;
+  }
 
   function writeConfig(nextConfig) {
     desktopConfig = configStorePort.write(nextConfig);
@@ -58,92 +65,27 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
     shellPort.emitEvent(channel, payload);
   }
 
-  function focusMainWindow() {
-    shellPort.focusMainWindow();
-  }
-
-  function sendDesktopCommand(command, payload = null) {
-    focusMainWindow();
-    emitDesktopEvent('markdeck:command', {
-      command,
-      payload,
-      issuedAt: new Date().toISOString(),
-    });
-  }
-
-  function setContentRoot(contentRoot) {
-    const normalizedRoot = contentRoot ? shellPort.resolvePath(contentRoot) : null;
-    const recentContentRoots = mergeRecentContentRoots(desktopConfig.recentContentRoots, normalizedRoot);
-
-    writeConfig({
-      ...desktopConfig,
-      contentRoot: normalizedRoot,
-      recentContentRoots,
-    });
-
-    contentRepository.invalidateAllCaches();
-    restartContentWatcher();
-    emitDesktopEvent('markdeck:content-root-changed', {
-      contentRoot: normalizedRoot,
-      recentContentRoots,
-    });
-  }
-
-  function applyLaunchTarget(target) {
-    if (!target?.contentRoot) {
-      return false;
-    }
-
-    setContentRoot(target.contentRoot);
-
-    if (target.relativeDocumentPath) {
-      sendDesktopCommand('open-launch-target', {
-        contentRoot: target.contentRoot,
-        relativeDocumentPath: target.relativeDocumentPath,
-        sourcePath: target.sourcePath,
-        targetType: target.targetType,
-      });
-      return true;
-    }
-
-    sendDesktopCommand('go-browse');
-    return true;
-  }
-
-  const launchTargetCoordinator = createLaunchTargetCoordinator({
-    applyLaunchTarget,
-    canApplyTargetNow: () => shellPort.canApplyTargetNow(),
+  const contentRefresh = createContentRefreshOrchestrator({
+    getConfiguredDesktopContentRoot,
+    contentRepository,
+    watcher: watcherPort,
+    emitDesktopEvent,
   });
 
-  function emitContentInvalidated(relativePath = null, reason = 'unknown') {
-    contentRepository.invalidateCachesForPath(relativePath);
-    emitDesktopEvent('markdeck:content-invalidated', {
-      relativePath,
-      reason,
-      contentRoot: getConfiguredDesktopContentRoot(),
-      changedAt: new Date().toISOString(),
-    });
-  }
+  const contentRootUseCases = createContentRootUseCases({
+    desktopConfigRef: { get: getDesktopConfig },
+    shell: shellPort,
+    contentRepository,
+    writeConfig,
+    restartContentWatcher: contentRefresh.restartContentWatcher,
+    emitDesktopEvent,
+  });
 
-  function scheduleContentReload(relativePath, reason) {
-    watcherPort.scheduleReload(() => {
-      emitContentInvalidated(relativePath, reason);
-    });
-  }
-
-  function restartContentWatcher() {
-    watcherPort.restart({
-      contentRoot: getConfiguredDesktopContentRoot(),
-      onContentChanged: (filename) => {
-        const relativePath = typeof filename === 'string' && filename.trim() ? contentRepository.normalizeRelativePath(filename) : null;
-        scheduleContentReload(relativePath, 'watcher');
-      },
-      onError: () => {
-        scheduleContentReload(null, 'watcher-error');
-        restartContentWatcher();
-      },
-    });
-  }
+  const launchTargetUseCases = createLaunchTargetUseCases({
+    shell: shellPort,
+    setContentRoot: contentRootUseCases.setContentRoot,
+    emitDesktopEvent,
+  });
 
   function toDesktopError(error) {
     if (error?.message === 'Unsafe path outside of content root') {
@@ -169,45 +111,14 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
     return { code: 'UNKNOWN_ERROR', message: error?.message || '알 수 없는 desktop 오류가 발생했습니다.' };
   }
 
-  async function chooseContentRoot() {
-    const result = await shellPort.chooseDirectory({
-      defaultPath: desktopConfig.contentRoot || undefined,
-    });
-
-    if (result.canceled || result.filePaths.length === 0) {
-      return desktopConfig.contentRoot;
-    }
-
-    const contentRoot = result.filePaths[0];
-    setContentRoot(contentRoot);
-    return contentRoot;
-  }
-
-  function openRecentContentRoot(contentRoot) {
-    if (!contentRoot) {
-      return desktopConfig.contentRoot;
-    }
-
-    if (!contentRepository.pathExists(contentRoot)) {
-      desktopConfig.recentContentRoots = desktopConfig.recentContentRoots.filter((item) => item !== contentRoot);
-      writeConfig(desktopConfig);
-      const error = new Error('파일이나 폴더를 찾을 수 없습니다.');
-      error.code = 'ENOENT';
-      throw error;
-    }
-
-    setContentRoot(contentRoot);
-    return contentRoot;
-  }
-
   async function executeDesktopCommand(command, payload = null) {
     switch (command) {
       case 'open-content-root':
-        return chooseContentRoot();
+        return contentRootUseCases.chooseContentRoot();
       case 'open-recent-content-root':
-        return openRecentContentRoot(payload?.contentRoot || payload);
+        return contentRootUseCases.openRecentContentRoot(payload?.contentRoot || payload);
       case 'reload-content':
-        emitContentInvalidated(null, 'manual-refresh');
+        contentRefresh.emitContentInvalidated(null, 'manual-refresh');
         return true;
       case 'go-home':
       case 'go-browse':
@@ -217,7 +128,7 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
       case 'go-forward':
       case 'toggle-theme':
       case 'toggle-command-palette':
-        sendDesktopCommand(command, payload);
+        launchTargetUseCases.sendDesktopCommand(command, payload);
         return true;
       default:
         throw new TypeError(`Unknown desktop command: ${command}`);
@@ -228,7 +139,7 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
     const template = menuAdapterPort.buildTemplate({
       recentContentRoots: getDesktopRecentContentRoots(),
       onCommand: executeDesktopCommand,
-      onOpenRecentContentRoot: openRecentContentRoot,
+      onOpenRecentContentRoot: contentRootUseCases.openRecentContentRoot,
     });
     menuAdapterPort.set(template);
   }
@@ -247,8 +158,8 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
   function registerIpcHandlers() {
     handleDesktopIpc('markdeck:get-content-root', () => getConfiguredDesktopContentRoot());
     handleDesktopIpc('markdeck:get-recent-content-roots', () => getDesktopRecentContentRoots());
-    handleDesktopIpc('markdeck:choose-content-root', chooseContentRoot);
-    handleDesktopIpc('markdeck:open-recent-content-root', (contentRoot) => openRecentContentRoot(contentRoot));
+    handleDesktopIpc('markdeck:choose-content-root', contentRootUseCases.chooseContentRoot);
+    handleDesktopIpc('markdeck:open-recent-content-root', (contentRoot) => contentRootUseCases.openRecentContentRoot(contentRoot));
     handleDesktopIpc('markdeck:list-directory', (relativePath = '') => contentRepository.listDirectory(relativePath));
     handleDesktopIpc('markdeck:build-document-tree', (relativePath = '', depth = 2) => contentRepository.buildDocumentTree(relativePath, depth));
     handleDesktopIpc('markdeck:read-markdown-document', (relativePath) => contentRepository.readMarkdownDocument(relativePath));
@@ -259,33 +170,21 @@ function createDesktopMainService({ env = process.env, configStore, shell, watch
     handleDesktopIpc('markdeck:execute-command', (command, payload = null) => executeDesktopCommand(command, payload));
   }
 
-  function setPendingLaunchTarget(target) {
-    launchTargetCoordinator.setPendingLaunchTarget(target);
-  }
-
-  function queueOrApplyLaunchTarget(target) {
-    return launchTargetCoordinator.queueOrApplyLaunchTarget(target);
-  }
-
-  function applyPendingLaunchTarget() {
-    return launchTargetCoordinator.applyPendingLaunchTarget();
-  }
-
   function shutdown() {
     watcherPort.close();
   }
 
   return {
-    applyPendingLaunchTarget,
+    applyPendingLaunchTarget: launchTargetUseCases.applyPendingLaunchTarget,
     executeDesktopCommand,
     getConfiguredDesktopContentRoot,
     getDesktopRecentContentRoots,
-    openRecentContentRoot,
-    queueOrApplyLaunchTarget,
+    openRecentContentRoot: contentRootUseCases.openRecentContentRoot,
+    queueOrApplyLaunchTarget: launchTargetUseCases.queueOrApplyLaunchTarget,
     rebuildApplicationMenu,
     registerIpcHandlers,
-    restartContentWatcher,
-    setPendingLaunchTarget,
+    restartContentWatcher: contentRefresh.restartContentWatcher,
+    setPendingLaunchTarget: launchTargetUseCases.setPendingLaunchTarget,
     shutdown,
   };
 }
