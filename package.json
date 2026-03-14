@@ -9,6 +9,7 @@
     "build": "npx pnpm --filter @markdeck/desktop run build:web",
     "start": "npx pnpm --filter @markdeck/web start",
     "typecheck": "npx pnpm --filter @markdeck/web typecheck",
+    "desktop:test": "npx pnpm --filter @markdeck/desktop test",
     "desktop:dev": "npx pnpm --filter @markdeck/desktop dev",
     "desktop:start": "npx pnpm --filter @markdeck/desktop start",
     "desktop:build:web": "npx pnpm --filter @markdeck/desktop run build:web",

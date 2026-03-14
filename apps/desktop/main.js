@@ -5,13 +5,20 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const http = require('node:http');
+const {
+  createLaunchTargetCoordinator,
+  getConfiguredContentRoot,
+  getIgnorePatterns,
+  getRecentContentRoots,
+  mergeRecentContentRoots,
+  normalizeConfig,
+  resolveLaunchTargetFromArgv,
+} = require('./main-core');
 
 const WEB_PORT = Number(process.env.MARKDECK_WEB_PORT || 3210);
 const WEB_URL = process.env.MARKDECK_WEB_URL || `http://127.0.0.1:${WEB_PORT}`;
 const isDev = !app.isPackaged;
 const configPath = path.join(app.getPath('userData'), 'markdeck-desktop.json');
-const DEFAULT_IGNORE_PATTERNS = ['.git', 'node_modules'];
-const MAX_RECENT_CONTENT_ROOTS = 8;
 const SEARCH_RESULTS_CACHE_LIMIT = 24;
 const MIME_TYPES = {
   '.png': 'image/png',
@@ -36,72 +43,6 @@ let searchIndexCache = null;
 let searchResultsCache = new Map();
 let documentCache = new Map();
 let assetCache = new Map();
-let pendingLaunchTarget = null;
-
-function isMarkdownFilePath(filePath) {
-  return path.extname(filePath).toLowerCase() === '.md';
-}
-
-function toPosixRelativePath(filePath, rootPath) {
-  return path.relative(rootPath, filePath).split(path.sep).join('/');
-}
-
-function extractLaunchPathArg(argv = []) {
-  const values = Array.isArray(argv) ? argv.filter((value) => typeof value === 'string' && value.trim()) : [];
-
-  for (const value of values.slice(1)) {
-    if (value === '--') {
-      continue;
-    }
-
-    if (value.startsWith('-')) {
-      continue;
-    }
-
-    return value;
-  }
-
-  return null;
-}
-
-function resolveLaunchTargetFromArg(rawArg) {
-  if (!rawArg || typeof rawArg !== 'string' || !rawArg.trim()) {
-    return null;
-  }
-
-  const candidatePath = path.resolve(rawArg);
-
-  if (!fs.existsSync(candidatePath)) {
-    return null;
-  }
-
-  const stats = fs.statSync(candidatePath);
-
-  if (stats.isDirectory()) {
-    return {
-      contentRoot: candidatePath,
-      relativeDocumentPath: null,
-      sourcePath: candidatePath,
-      targetType: 'directory',
-    };
-  }
-
-  if (stats.isFile() && isMarkdownFilePath(candidatePath)) {
-    const contentRoot = path.dirname(candidatePath);
-    return {
-      contentRoot,
-      relativeDocumentPath: toPosixRelativePath(candidatePath, contentRoot),
-      sourcePath: candidatePath,
-      targetType: 'markdown-file',
-    };
-  }
-
-  return null;
-}
-
-function resolveLaunchTargetFromArgv(argv = process.argv) {
-  return resolveLaunchTargetFromArg(extractLaunchPathArg(argv));
-}
 
 function applyLaunchTarget(target) {
   if (!target?.contentRoot) {
@@ -124,24 +65,10 @@ function applyLaunchTarget(target) {
   return true;
 }
 
-function queueOrApplyLaunchTarget(target) {
-  if (!target) {
-    return false;
-  }
-
-  pendingLaunchTarget = target;
-
-  if (!mainWindow || mainWindow.isDestroyed() || !mainWindow.webContents || mainWindow.webContents.isLoading()) {
-    return false;
-  }
-
-  const didApply = applyLaunchTarget(target);
-  if (didApply) {
-    pendingLaunchTarget = null;
-  }
-
-  return didApply;
-}
+const launchTargetCoordinator = createLaunchTargetCoordinator({
+  applyLaunchTarget,
+  canApplyTargetNow: () => Boolean(mainWindow && !mainWindow.isDestroyed() && mainWindow.webContents && !mainWindow.webContents.isLoading()),
+});
 
 function readConfig() {
   try {
@@ -149,24 +76,6 @@ function readConfig() {
   } catch {
     return normalizeConfig({ contentRoot: process.env.MARKDECK_CONTENT_ROOT || null });
   }
-}
-
-function normalizeConfig(input = {}) {
-  const contentRoot = typeof input.contentRoot === 'string' && input.contentRoot.trim() ? path.resolve(input.contentRoot) : null;
-  const recentContentRoots = Array.isArray(input.recentContentRoots)
-    ? input.recentContentRoots
-        .filter((value) => typeof value === 'string' && value.trim())
-        .map((value) => path.resolve(value))
-        .filter((value, index, values) => values.indexOf(value) === index)
-        .slice(0, MAX_RECENT_CONTENT_ROOTS)
-    : contentRoot
-      ? [contentRoot]
-      : [];
-
-  return {
-    contentRoot,
-    recentContentRoots,
-  };
 }
 
 function writeConfig(nextConfig) {
@@ -178,9 +87,7 @@ function writeConfig(nextConfig) {
 
 function setContentRoot(contentRoot) {
   const normalizedRoot = contentRoot ? path.resolve(contentRoot) : null;
-  const recentContentRoots = normalizedRoot
-    ? [normalizedRoot, ...desktopConfig.recentContentRoots.filter((item) => item !== normalizedRoot)].slice(0, MAX_RECENT_CONTENT_ROOTS)
-    : desktopConfig.recentContentRoots;
+  const recentContentRoots = mergeRecentContentRoots(desktopConfig.recentContentRoots, normalizedRoot);
 
   writeConfig({
     ...desktopConfig,
@@ -196,24 +103,16 @@ function setContentRoot(contentRoot) {
   });
 }
 
-function getConfiguredContentRoot() {
-  const configuredRoot = desktopConfig.contentRoot || process.env.MARKDECK_CONTENT_ROOT || null;
-  return configuredRoot ? path.resolve(configuredRoot) : null;
+function getConfiguredDesktopContentRoot() {
+  return getConfiguredContentRoot(desktopConfig, process.env);
 }
 
-function getRecentContentRoots() {
-  const currentRoot = getConfiguredContentRoot();
-  const items = desktopConfig.recentContentRoots.filter((item, index, values) => values.indexOf(item) === index);
-
-  if (!currentRoot) {
-    return items;
-  }
-
-  return [currentRoot, ...items.filter((item) => item !== currentRoot)].slice(0, MAX_RECENT_CONTENT_ROOTS);
+function getDesktopRecentContentRoots() {
+  return getRecentContentRoots(desktopConfig, process.env);
 }
 
 function getContentRoot() {
-  const contentRoot = getConfiguredContentRoot();
+  const contentRoot = getConfiguredDesktopContentRoot();
 
   if (!contentRoot) {
     const error = new Error('Content root is not configured');
@@ -222,16 +121,6 @@ function getContentRoot() {
   }
 
   return contentRoot;
-}
-
-function getIgnorePatterns() {
-  const rawValue = process.env.MARKDECK_IGNORE_PATTERNS;
-  const customPatterns = rawValue
-    ?.split(',')
-    .map((value) => value.trim())
-    .filter(Boolean);
-
-  return customPatterns && customPatterns.length > 0 ? customPatterns : DEFAULT_IGNORE_PATTERNS;
 }
 
 function normalizeSegments(segments = []) {
@@ -637,7 +526,7 @@ function emitContentInvalidated(relativePath = null, reason = 'unknown') {
   emitDesktopEvent('markdeck:content-invalidated', {
     relativePath,
     reason,
-    contentRoot: getConfiguredContentRoot(),
+    contentRoot: getConfiguredDesktopContentRoot(),
     changedAt: new Date().toISOString(),
   });
 }
@@ -667,7 +556,7 @@ function closeContentWatcher() {
 function restartContentWatcher() {
   closeContentWatcher();
 
-  const contentRoot = getConfiguredContentRoot();
+  const contentRoot = getConfiguredDesktopContentRoot();
   if (!contentRoot || !fs.existsSync(contentRoot)) {
     return;
   }
@@ -765,7 +654,7 @@ function waitForWeb(url, timeoutMs = 30000) {
 }
 
 function createWebEnv() {
-  const configuredContentRoot = getConfiguredContentRoot();
+  const configuredContentRoot = getConfiguredDesktopContentRoot();
 
   return {
     ...process.env,
@@ -818,12 +707,7 @@ async function loadApp() {
   const url = await ensureWebApp();
   await mainWindow.loadURL(`${url}/desktop#/`);
 
-  if (pendingLaunchTarget) {
-    const didApply = applyLaunchTarget(pendingLaunchTarget);
-    if (didApply) {
-      pendingLaunchTarget = null;
-    }
-  }
+  launchTargetCoordinator.applyPendingLaunchTarget();
 }
 
 async function chooseContentRoot() {
@@ -904,7 +788,7 @@ async function executeDesktopCommand(command, payload = null) {
 }
 
 function buildRecentFoldersSubmenu() {
-  const recentFolders = getRecentContentRoots();
+  const recentFolders = getDesktopRecentContentRoots();
 
   if (recentFolders.length === 0) {
     return [{ label: '최근 폴더 없음', enabled: false }];
@@ -1015,8 +899,8 @@ function rebuildApplicationMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
-handleDesktopIpc('markdeck:get-content-root', () => getConfiguredContentRoot());
-handleDesktopIpc('markdeck:get-recent-content-roots', () => getRecentContentRoots());
+handleDesktopIpc('markdeck:get-content-root', () => getConfiguredDesktopContentRoot());
+handleDesktopIpc('markdeck:get-recent-content-roots', () => getDesktopRecentContentRoots());
 handleDesktopIpc('markdeck:choose-content-root', chooseContentRoot);
 handleDesktopIpc('markdeck:open-recent-content-root', (contentRoot) => openRecentContentRoot(contentRoot));
 handleDesktopIpc('markdeck:list-directory', (relativePath = '') => listDirectory(relativePath));
@@ -1031,11 +915,11 @@ handleDesktopIpc('markdeck:execute-command', (command, payload = null) => execut
 if (!gotSingleInstanceLock) {
   app.quit();
 } else {
-  pendingLaunchTarget = resolveLaunchTargetFromArgv(process.argv);
+  launchTargetCoordinator.setPendingLaunchTarget(resolveLaunchTargetFromArgv(process.argv));
 
   app.on('second-instance', (_event, argv) => {
     focusMainWindow();
-    queueOrApplyLaunchTarget(resolveLaunchTargetFromArgv(argv));
+    launchTargetCoordinator.queueOrApplyLaunchTarget(resolveLaunchTargetFromArgv(argv));
   });
 
   app.whenReady().then(async () => {
