@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "electron .",
     "start": "electron .",
-    "test": "node --test main-core.test.js",
+    "test": "node --test", 
     "build:web": "cd ../web && npx next build && node ../desktop/scripts/prepare-standalone.mjs",
     "pack": "npm run build:web && electron-builder --dir",
     "dist": "npm run build:web && electron-builder --mac zip",
