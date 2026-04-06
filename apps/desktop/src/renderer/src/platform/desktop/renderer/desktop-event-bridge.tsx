@@ -5,10 +5,10 @@ import { useEffect } from 'react';
 
 import { executeDesktopCommand, onDesktopCommand, onDesktopContentInvalidated, onDesktopContentRootChanged } from '@/platform/desktop/renderer/desktop-api';
 import { desktopQueryKeys, invalidateDesktopContentQueries } from '@/platform/desktop/renderer/desktop-queries';
-import { getDesktopHashHref } from '@/shared/lib/app-routes';
+import { createAppHref } from '@/shared/lib/app-routes';
 
 function navigateDesktop(href: string) {
-  window.location.hash = getDesktopHashHref(href).replace('/#', '#');
+  window.location.hash = createAppHref(href);
 }
 
 function focusSearchInput() {
@@ -52,6 +52,7 @@ export function DesktopEventBridge() {
       queryClient.setQueryData(desktopQueryKeys.contentRoot, payload.contentRoot);
       queryClient.setQueryData(desktopQueryKeys.recentContentRoots, payload.recentContentRoots);
       void invalidateDesktopContentQueries(queryClient);
+      navigateDesktop('/');
     });
 
     const unsubscribeCommand = onDesktopCommand((payload) => {

@@ -16,6 +16,7 @@ import {
   searchDesktopMarkdownDocuments,
 } from '@/platform/desktop/renderer/desktop-api';
 import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
+import { createAppHref } from '@/shared/lib/app-routes';
 
 export const desktopQueryKeys = {
   contentRoot: ['desktop', 'content-root'] as const,
@@ -260,6 +261,7 @@ export function useChooseDesktopContentRootMutation() {
   return useMutation({
     mutationFn: () => chooseDesktopContentRootFromApi(),
     onSuccess: async (nextRoot) => {
+      resetDesktopRouteToRoot();
       queryClient.setQueryData(desktopQueryKeys.contentRoot, nextRoot);
       await invalidateDesktopContentQueries(queryClient);
     },
@@ -272,8 +274,17 @@ export function useOpenDesktopRecentContentRootMutation() {
   return useMutation({
     mutationFn: (contentRoot: string) => openDesktopRecentContentRoot(contentRoot),
     onSuccess: async (nextRoot) => {
+      resetDesktopRouteToRoot();
       queryClient.setQueryData(desktopQueryKeys.contentRoot, nextRoot);
       await invalidateDesktopContentQueries(queryClient);
     },
   });
+}
+
+function resetDesktopRouteToRoot() {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  window.location.hash = createAppHref('/');
 }
