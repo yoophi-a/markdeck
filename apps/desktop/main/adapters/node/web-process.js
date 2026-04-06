@@ -1,7 +1,18 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const { spawn, execFileSync } = require('node:child_process');
 const http = require('node:http');
+
+function resolveCommand(command) {
+  try {
+    // Use a login shell to resolve the command path, ensuring shell profile PATH is available
+    // even when Electron is launched as a GUI app with a minimal PATH.
+    const resolved = execFileSync('/bin/zsh', ['-lc', `which ${command}`], { encoding: 'utf8' }).trim();
+    return resolved || command;
+  } catch {
+    return command;
+  }
+}
 
 function waitForWeb(url, timeoutMs = 30000) {
   const startedAt = Date.now();
@@ -39,7 +50,7 @@ function createWebProcessController({ isDev, webPort, webUrl, createWebEnv, desk
   }
 
   function spawnWebProcess(command, args, cwd) {
-    webProcess = spawn(command, args, {
+    webProcess = spawn(resolveCommand(command), args, {
       cwd,
       env: createWebEnv(),
       stdio: 'inherit',
@@ -54,7 +65,7 @@ function createWebProcessController({ isDev, webPort, webUrl, createWebEnv, desk
     async ensureWebApp() {
       if (!webProcess) {
         if (isDev) {
-          spawnWebProcess('npm', ['run', 'dev', '--', '--port', String(webPort)], path.resolve(desktopDirname, '../web'));
+          spawnWebProcess('pnpm', ['run', 'dev', '--port', String(webPort)], path.resolve(desktopDirname, '../web'));
         } else {
           const entrypoint = getStandaloneEntrypoint();
 

@@ -68,7 +68,7 @@ function createDesktopMainRuntime({ app, BrowserWindow, dialog, ipcMain, env = p
     webPort: WEB_PORT,
     webUrl: WEB_URL,
     createWebEnv,
-    desktopDirname: path.resolve(dirname, '../..'),
+    desktopDirname: dirname,
   });
 
   async function loadApp() {
