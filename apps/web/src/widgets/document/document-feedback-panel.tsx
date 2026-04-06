@@ -79,7 +79,7 @@ export function DocumentFeedbackPanel({ annotations, onDeleteAnnotation }: Docum
             <p className="eyebrow">Share</p>
             <h2>feedback draft view</h2>
           </div>
-          <Share2 className="size-4 text-[var(--muted)]" />
+          <Share2 className="size-4 text-[var(--text-muted)]" />
         </div>
         <p className="muted">공유용 summary 초안입니다. 추후 desktop 저장/내보내기 로직이 붙을 자리를 먼저 마련했습니다.</p>
         <pre className="feedback-share-preview">{shareDraft}</pre>

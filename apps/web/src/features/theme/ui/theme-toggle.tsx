@@ -10,14 +10,18 @@ const STORAGE_KEY = 'markdeck-theme';
 type ThemeMode = 'dark' | 'light';
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [theme, setTheme] = useState<ThemeMode>('light');
   const [mounted, setMounted] = useState(false);
+
+  function applyTheme(nextTheme: ThemeMode) {
+    document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+  }
 
   useEffect(() => {
     const storedTheme = window.localStorage.getItem(STORAGE_KEY);
-    const nextTheme: ThemeMode = storedTheme === 'light' ? 'light' : 'dark';
+    const nextTheme: ThemeMode = storedTheme === 'dark' ? 'dark' : 'light';
 
-    document.documentElement.dataset.theme = nextTheme;
+    applyTheme(nextTheme);
     setTheme(nextTheme);
     setMounted(true);
   }, []);
@@ -26,7 +30,7 @@ export function ThemeToggle() {
     const handleToggle = () => {
       setTheme((currentTheme) => {
         const nextTheme: ThemeMode = currentTheme === 'dark' ? 'light' : 'dark';
-        document.documentElement.dataset.theme = nextTheme;
+        applyTheme(nextTheme);
         window.localStorage.setItem(STORAGE_KEY, nextTheme);
         return nextTheme;
       });
@@ -39,7 +43,7 @@ export function ThemeToggle() {
   function handleToggle() {
     const nextTheme: ThemeMode = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
-    document.documentElement.dataset.theme = nextTheme;
+    applyTheme(nextTheme);
     window.localStorage.setItem(STORAGE_KEY, nextTheme);
   }
 

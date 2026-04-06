@@ -13,18 +13,18 @@ interface CodeBlockProps {
 type ThemeMode = 'dark' | 'light';
 
 export function CodeBlock({ code, language }: CodeBlockProps) {
-  const [theme, setTheme] = useState<ThemeMode>('dark');
+  const [theme, setTheme] = useState<ThemeMode>('light');
 
   useEffect(() => {
-    const currentTheme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+    const currentTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
     setTheme(currentTheme);
 
     const observer = new MutationObserver(() => {
-      const nextTheme = document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+      const nextTheme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
       setTheme(nextTheme);
     });
 
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
   }, []);
 

@@ -10,7 +10,7 @@ const geist = Geist({ subsets: ['latin'], variable: '--font-sans' });
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko" data-theme="dark" className={cn('font-sans', geist.variable)}>
+    <html lang="ko" className={cn('font-sans', geist.variable)}>
       <body>
         <DesktopQueryProvider>
           <div className="shell">
