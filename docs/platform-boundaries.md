@@ -1,6 +1,6 @@
 # Platform boundaries
 
-MarkDeck currently keeps a **web-first UI** and a **desktop wrapper**, but the file access boundary is now being made explicit.
+MarkDeck now runs as a **desktop-first Electron app** with an `electron-vite` renderer. Filesystem access stays in Electron main and the renderer talks only through preload IPC.
 
 ## Layers
 
@@ -8,36 +8,37 @@ MarkDeck currently keeps a **web-first UI** and a **desktop wrapper**, but the f
 
 Location examples:
 
-- `apps/web/src/shared/lib/content-types.ts`
-- `apps/web/src/shared/lib/content-links.ts`
-- `apps/web/src/shared/lib/markdown.ts`
-- `apps/web/src/shared/lib/assets.ts`
+- `apps/desktop/src/renderer/src/shared/lib/content-types.ts`
+- `apps/desktop/src/renderer/src/shared/lib/content-links.ts`
+- `apps/desktop/src/renderer/src/shared/lib/markdown.ts`
+- `apps/desktop/src/renderer/src/shared/lib/assets.ts`
 
 Rules:
 
 - pure data shapes and pure string/markdown/path helpers only
 - no `window`, Electron IPC, `fs`, or Next route handlers here
-- safe to use from both server and client components
+- safe to use from renderer components and desktop IPC payloads
 
-### Web-only adapter
+### Desktop renderer adapter
 
 Location:
 
-- `apps/web/src/platform/web/server/content-fs.ts`
+- `apps/desktop/src/renderer/src/platform/desktop/renderer/desktop-api.ts`
+- `apps/desktop/src/renderer/src/platform/desktop/renderer/desktop-queries.ts`
 
 Rules:
 
-- server-only filesystem access for the web/Next runtime
-- wraps the existing `fs`-backed content loader
-- should stay as the SSR/fallback path while desktop migration continues
+- renderer never touches `fs` directly
+- renderer reads content only through preload-exposed IPC
+- route state and query state stay on the renderer side
 
-### Desktop-only adapter
+### Desktop main / preload
 
 Location:
 
-- `apps/web/src/platform/desktop/renderer/desktop-api.ts`
-- `apps/desktop/main.js`
-- `apps/desktop/preload.js`
+- `apps/desktop/src/main/index.js`
+- `apps/desktop/src/preload/index.js`
+- `apps/desktop/main/**/*`
 
 Rules:
 
@@ -47,28 +48,22 @@ Rules:
 
 ## Current flow
 
-### Web
-
-- Next server reads filesystem through the web adapter
-- pages render from server data directly
-
-### Desktop
-
-- initial render still uses the Next server path
-- after hydration, desktop-aware client code may refresh through Electron IPC
-- this keeps the current Electron-wraps-web model while gradually moving file reads into Electron main
+- electron-vite loads the renderer from `src/renderer`
+- preload exposes the `markdeckDesktop` bridge
+- Electron main handles content root, watcher, search, and local file reads
+- renderer updates route/query state entirely on the client via `HashRouter` + React Query
 
 ## Migration guideline
 
 When adding new content access behavior:
 
 1. put reusable shapes/helpers in **shared**
-2. put Next/fs access in **web/server adapter**
-3. put Electron IPC access in **desktop/renderer adapter + main**
-4. avoid importing server-only code into client components
+2. put renderer-side access in **desktop renderer adapter**
+3. put filesystem / OS access in **Electron main or preload**
+4. avoid importing Node-only code into renderer components
 
 ## Near-term follow-up
 
-- move search/indexing behind the same adapter split
-- consider asset reads and config reads under the same boundary
-- if desktop eventually becomes fully client-driven, the web adapter can remain for SSR/web mode only
+- keep renderer route/view code independent from Electron internals
+- keep search/indexing and asset loading behind the same IPC boundary
+- move any remaining legacy `main/*` internals under `src/main` when the churn is worth it

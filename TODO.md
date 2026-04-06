@@ -21,3 +21,8 @@
 - [ ] Improve annotation selection UX for edge cases across complex markdown structures
 - [ ] Add smoother navigation from panel item -> annotated position
 - [ ] Improve delete mark discoverability and reversibility
+
+### Desktop runtime architecture
+- [ ] Convert `apps/desktop/src/main/app`, `application`, `core`, and `infrastructure` runtime modules from JavaScript to TypeScript
+- [ ] Remove the `sync-main-runtime.mjs` compatibility copy step by making the Electron main runtime fully TypeScript/ESM-friendly for `electron-vite`
+- [ ] Revisit main-process module boundaries after TypeScript migration and simplify any remaining legacy `desktop-main-*` naming

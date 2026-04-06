@@ -1,17 +1,17 @@
-# Desktop packaging draft
+# Desktop packaging
 
 ## Current direction
 
-1. `apps/web` keeps the existing Next.js UI.
-2. `apps/desktop` wraps the web UI with Electron.
-3. In development, Electron starts the web app and loads the local URL.
-4. In production/package mode, Electron starts the bundled Next.js standalone server from app resources and loads that local URL.
+1. `apps/desktop` is the only app package.
+2. Electron main, preload, and renderer are built through `electron-vite`.
+3. In development, Electron loads the Vite renderer URL injected by `electron-vite`.
+4. In production/package mode, Electron loads the built `out/renderer/index.html`.
 
 ## Implemented scripts
 
-- `npm run desktop:build:web`
-  - builds the Next.js standalone output
-  - runs `apps/desktop/scripts/prepare-standalone.mjs` to mirror `node_modules` into `apps/web/.next/standalone/apps/web/node_modules`
+- `npm run desktop:build`
+  - runs renderer typecheck
+  - builds `main`, `preload`, and `renderer` through `electron-vite`
 - `npm run desktop:pack`
   - creates an unpacked macOS app bundle via `electron-builder --dir`
 - `npm run desktop:dist`
@@ -21,12 +21,12 @@
 
 ## Verified on 2026-03-13
 
-### Desktop dev / build
+### Desktop dev / build baseline
 
 - `npm run typecheck` succeeded.
-- `npm run desktop:build:web` succeeded.
+- `npm run desktop:build` succeeded.
 - `npm run desktop:pack` succeeded and produced `release/desktop/mac-arm64/MarkDeck.app`.
-- desktop renderer shell / watcher / recent folders / menu-command palette follow-up changes stayed buildable after the desktop-first refactor wave.
+- desktop renderer shell / watcher / recent folders / menu-command palette remain buildable after the electron-vite migration.
 
 ## Signing / notarization follow-up
 
@@ -49,7 +49,7 @@ You still need the usual Apple credentials/environment for a real signed distrib
 
 ### Recommended release flow
 
-1. `npm run desktop:build:web`
+1. `npm run desktop:build`
 2. `npm run desktop:pack`
 3. verify `release/desktop/mac-arm64/MarkDeck.app`
 4. export Apple signing/notarization env vars
@@ -60,7 +60,7 @@ You still need the usual Apple credentials/environment for a real signed distrib
 
 - macOS-first only. Windows/Linux packaging is not configured yet.
 - App icon and notarization automation are still not fully configured.
-- The build currently packages the web standalone server as an app resource; this is intentional for the current architecture, but it keeps the desktop app coupled to the embedded Next runtime.
+- The current source tree still keeps some legacy main-process modules outside `src/main`; packaging is already electron-vite based, but internals can be consolidated further over time.
 
 ## Build artifact outline
 
