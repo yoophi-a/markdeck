@@ -541,12 +541,12 @@ body.is-resizing-document-layout {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
-  padding: 0.22rem;
-  border: 1px solid color-mix(in srgb, var(--line) 86%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--panel) 92%, var(--panel-2));
-  box-shadow: 0 10px 24px rgba(7, 11, 23, 0.18);
-  backdrop-filter: blur(10px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
   opacity: 0;
   pointer-events: none;
   transform: translateY(2px);
@@ -673,8 +673,8 @@ body.is-resizing-document-layout {
   opacity: 1;
   pointer-events: auto;
   transform: translateY(0);
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--line));
-  background: color-mix(in srgb, var(--panel) 96%, var(--panel-2));
+  border-color: transparent;
+  background: transparent;
 }
 
 .annotation-block-action-button:hover {
