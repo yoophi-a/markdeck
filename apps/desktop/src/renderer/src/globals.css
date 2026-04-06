@@ -820,6 +820,7 @@ body.is-resizing-document-layout {
 .markdown-body {
   line-height: 1.78;
   font-size: 1.02rem;
+  font-family: Pretendard, 'Pretendard Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .markdown-body > :first-child {
@@ -842,16 +843,19 @@ body.is-resizing-document-layout {
 .markdown-body h1 {
   margin: 2.2rem 0 1rem;
   font-size: 2rem;
+  font-weight: 800;
 }
 
 .markdown-body h2 {
   margin: 1.9rem 0 0.9rem;
   font-size: 1.45rem;
+  font-weight: 700;
 }
 
 .markdown-body h3 {
   margin: 1.5rem 0 0.75rem;
   font-size: 1.15rem;
+  font-weight: 700;
 }
 
 .markdown-body p,
@@ -876,6 +880,11 @@ body.is-resizing-document-layout {
 .markdown-body code,
 .markdown-body table {
   overflow-x: auto;
+}
+
+.markdown-body pre,
+.markdown-body code {
+  font-family: 'SFMono-Regular', ui-monospace, Menlo, monospace;
 }
 
 .markdown-body pre {
