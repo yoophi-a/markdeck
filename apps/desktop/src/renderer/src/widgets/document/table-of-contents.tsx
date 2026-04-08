@@ -106,6 +106,14 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
                           className={`toc-link${isActive ? ' active' : ''}`}
                           aria-current={isActive ? 'location' : undefined}
                           ref={isActive ? activeLinkRef : undefined}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const target = document.getElementById(heading.id)
+                              ?? document.querySelector(`h1[id^="${CSS.escape(heading.id)}"], h2[id^="${CSS.escape(heading.id)}"], h3[id^="${CSS.escape(heading.id)}"]`);
+                            if (target) {
+                              target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
                         >
                           {heading.text}
                         </AppAnchorLink>
