@@ -66,16 +66,16 @@ MarkDeck은 현재 **Electron + electron-vite 기반 desktop app** 입니다.
 
 런타임은 아래 세 층으로 분리되어 있습니다.
 
-- **main** → 파일 시스템 / search / asset read / desktop integration
-- **IPC** → typed contract
-- **renderer** → UI / routing / review workflow
+- **main** (`apps/desktop/src/main`) → 파일 시스템 / search / asset read / desktop integration
+- **preload** (`apps/desktop/src/preload`) → renderer에 노출되는 최소 IPC bridge
+- **renderer** (`apps/desktop/src/renderer/src`) → UI / routing / review workflow
 
 desktop main은 `fluffy-comics` 구조를 참고해 hexagonal architecture 경계를 드러내는 형태로 정리되어 있습니다.
 
-- **core** → 순수 규칙 / 정책
-- **application** → 유스케이스 오케스트레이션
-- **infrastructure/electron** → 메뉴 / shell / Electron boundary
-- **infrastructure/node** → config / content / watcher / process access
+- **core** (`src/main/core`) → 순수 규칙 / 정책
+- **application** (`src/main/application`) → 유스케이스 오케스트레이션
+- **infrastructure/electron** (`src/main/infrastructure/electron`) → 메뉴 / shell / Electron boundary
+- **infrastructure/node** (`src/main/infrastructure/node`) → config / content / watcher / process access
 
 현재 desktop에서 이미 반영된 것:
 
@@ -190,10 +190,14 @@ markdeck/
 
 renderer 쪽은 현재 실용적인 FSD 방향으로 정리 중입니다.
 
-- `platform/desktop/renderer` → desktop renderer bootstrap / bridge / IPC adapter
+- `platform/desktop/renderer` → desktop renderer bootstrap / bridge / IPC adapter / React Query hooks
 - `views/desktop/*` → desktop route 단위 page composition
+- `features/*` → 검색, 테마처럼 독립 기능에 가까운 UI 단위
 - `widgets/desktop/*` → desktop shell 주변 UI(command palette, shortcut help, refresh status)
 - `widgets/document|navigation|layout` → page 조합에 재사용되는 UI 블록
+- `shared/lib|ui|types` → 순수 helper, 공용 UI primitive, IPC/desktop 타입
+
+현재 우선순위는 `TODO.md` 기준으로 renderer 구조 정리 → README/architecture docs 최신화 → 그 이후 annotation persistence 같은 큰 feature 재개 순서입니다.
 
 ---
 
