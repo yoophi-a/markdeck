@@ -3,18 +3,16 @@
 import { LayoutPanelLeft, ListTree, Maximize2, Minimize2, MessageSquareText } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 
-import { readReaderLayoutState, writeReaderLayoutState } from '@/shared/lib/view-state';
+import {
+  clampReaderPanelWidth,
+  hasReaderRightPanel,
+  normalizeReaderLayoutSettings,
+  resolveReaderLayoutClassName,
+  type ReaderLayoutSettings,
+} from '@/shared/lib/reader-layout-state';
 import { cn } from '@/shared/lib/utils';
+import { readReaderLayoutState, writeReaderLayoutState } from '@/shared/lib/view-state';
 import { Button } from '@/shared/ui/button';
-
-interface ReaderLayoutSettings {
-  showTree: boolean;
-  showFeedback: boolean;
-  showToc: boolean;
-  isDocumentMaximized: boolean;
-  treeWidth: number;
-  rightPanelWidth: number;
-}
 
 interface DocumentReaderLayoutProps {
   contentRootKey: string;
@@ -24,17 +22,6 @@ interface DocumentReaderLayoutProps {
   feedback: React.ReactNode;
   toc: React.ReactNode;
 }
-
-const MIN_PANEL_WIDTH = 220;
-const MAX_PANEL_WIDTH = 420;
-const DEFAULT_SETTINGS: ReaderLayoutSettings = {
-  showTree: true,
-  showFeedback: true,
-  showToc: true,
-  isDocumentMaximized: false,
-  treeWidth: 280,
-  rightPanelWidth: 280,
-};
 
 export function DocumentReaderLayout({ contentRootKey, tree, document, maximizedDocument, feedback, toc }: DocumentReaderLayoutProps) {
   const [settings, setSettings] = useState<ReaderLayoutSettings>(() => readLayoutSettings(contentRootKey));
@@ -89,29 +76,9 @@ export function DocumentReaderLayout({ contentRootKey, tree, document, maximized
     };
   }, []);
 
-  const hasRightPanel = settings.showFeedback || settings.showToc;
+  const hasRightPanel = hasReaderRightPanel(settings);
 
-  const layoutClassName = useMemo(() => {
-    const classNames = ['document-layout'];
-
-    if (settings.showTree && hasRightPanel) {
-      classNames.push('with-tree');
-    }
-
-    if (settings.showTree) {
-      classNames.push('has-tree');
-    }
-
-    if (hasRightPanel) {
-      classNames.push('has-toc');
-    }
-
-    if (settings.isDocumentMaximized) {
-      classNames.push('is-maximized');
-    }
-
-    return classNames.join(' ');
-  }, [hasRightPanel, settings.isDocumentMaximized, settings.showTree]);
+  const layoutClassName = useMemo(() => resolveReaderLayoutClassName(settings), [settings]);
 
   const layoutStyle = useMemo(
     () =>
@@ -169,9 +136,9 @@ export function DocumentReaderLayout({ contentRootKey, tree, document, maximized
         ) : (
           <>
             {settings.showTree ? <div className="document-tree-side stack">{tree}</div> : null}
-            {settings.showTree ? <ResizeHandle ariaLabel="좌측 패널 너비 조절" title="트리 너비 조절" onResize={(deltaX) => setSettings((current) => ({ ...current, treeWidth: clampPanelWidth(current.treeWidth + deltaX) }))} /> : null}
+            {settings.showTree ? <ResizeHandle ariaLabel="좌측 패널 너비 조절" title="트리 너비 조절" onResize={(deltaX) => setSettings((current) => ({ ...current, treeWidth: clampReaderPanelWidth(current.treeWidth + deltaX) }))} /> : null}
             <div className="document-main stack">{document}</div>
-            {hasRightPanel ? <ResizeHandle ariaLabel="우측 패널 너비 조절" title="우측 패널 너비 조절" onResize={(deltaX) => setSettings((current) => ({ ...current, rightPanelWidth: clampPanelWidth(current.rightPanelWidth - deltaX) }))} /> : null}
+            {hasRightPanel ? <ResizeHandle ariaLabel="우측 패널 너비 조절" title="우측 패널 너비 조절" onResize={(deltaX) => setSettings((current) => ({ ...current, rightPanelWidth: clampReaderPanelWidth(current.rightPanelWidth - deltaX) }))} /> : null}
             {hasRightPanel ? <div className="document-side stack">{settings.showFeedback ? feedback : null}{settings.showToc ? toc : null}</div> : null}
           </>
         )}
@@ -218,24 +185,8 @@ function ResizeHandle({ onResize, ariaLabel, title }: { onResize: (deltaX: numbe
   );
 }
 
-function clampPanelWidth(width: number) {
-  return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, Math.round(width)));
-}
-
 function readLayoutSettings(contentRootKey: string): ReaderLayoutSettings {
-  const parsed = readReaderLayoutState(contentRootKey) as (Partial<ReaderLayoutSettings> & { tocWidth?: number; feedbackWidth?: number }) | null;
-  if (!parsed) {
-    return DEFAULT_SETTINGS;
-  }
-
-  return {
-    showTree: parsed.showTree ?? true,
-    showFeedback: parsed.showFeedback ?? true,
-    showToc: parsed.showToc ?? true,
-    isDocumentMaximized: parsed.isDocumentMaximized ?? false,
-    treeWidth: clampPanelWidth(parsed.treeWidth ?? DEFAULT_SETTINGS.treeWidth),
-    rightPanelWidth: clampPanelWidth(parsed.rightPanelWidth ?? parsed.feedbackWidth ?? parsed.tocWidth ?? DEFAULT_SETTINGS.rightPanelWidth),
-  };
+  return normalizeReaderLayoutSettings(readReaderLayoutState(contentRootKey));
 }
 
 function writeLayoutSettings(contentRootKey: string, settings: ReaderLayoutSettings) {
