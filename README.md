@@ -98,6 +98,7 @@ desktop main은 `fluffy-comics` 구조를 참고해 hexagonal architecture 경�
 - [`docs/desktop-cache-strategy.md`](./docs/desktop-cache-strategy.md)
 - [`docs/desktop-packaging.md`](./docs/desktop-packaging.md)
 - [`docs/electron-runtime-comparison.md`](./docs/electron-runtime-comparison.md)
+- [`docs/renderer-integration-testing.md`](./docs/renderer-integration-testing.md)
 
 ---
 
