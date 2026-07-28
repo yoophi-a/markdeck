@@ -3,8 +3,8 @@
 ## Recommended next direction
 
 ### Current priority
-- [ ] Do one more renderer structure cleanup pass after the first practical FSD refactor
-- [ ] Update README / architecture docs to match the latest renderer and desktop main structure
+- [x] Do one more renderer structure cleanup pass after the first practical FSD refactor
+- [x] Update README / architecture docs to match the latest renderer and desktop main structure
 - [ ] Only after that, resume larger feature work such as annotation persistence / feedback sharing / translation helpers
 
 ### Why this is the current recommendation

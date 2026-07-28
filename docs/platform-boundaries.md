@@ -25,26 +25,32 @@ Location:
 
 - `apps/desktop/src/renderer/src/platform/desktop/renderer/desktop-api.ts`
 - `apps/desktop/src/renderer/src/platform/desktop/renderer/desktop-queries.ts`
+- `apps/desktop/src/renderer/src/platform/desktop/renderer/desktop-query-flows.ts`
 
 Rules:
 
 - renderer never touches `fs` directly
 - renderer reads content only through preload-exposed IPC
 - route state and query state stay on the renderer side
+- IPC-backed query composition should stay in small helper modules when it can be tested without React rendering
 
 ### Desktop main / preload
 
 Location:
 
-- `apps/desktop/src/main/index.js`
-- `apps/desktop/src/preload/index.js`
-- `apps/desktop/main/**/*`
+- `apps/desktop/src/main/index.ts`
+- `apps/desktop/src/main/app/**/*`
+- `apps/desktop/src/main/application/**/*`
+- `apps/desktop/src/main/core/**/*`
+- `apps/desktop/src/main/infrastructure/**/*`
+- `apps/desktop/src/preload/index.ts`
 
 Rules:
 
 - renderer never touches Node/fs directly
 - renderer calls preload API
 - Electron main owns content root persistence and local filesystem reads
+- main `core` stays pure, `application` coordinates use cases, and `infrastructure` owns Electron/Node adapters
 
 ## Current flow
 
@@ -67,3 +73,4 @@ When adding new content access behavior:
 - keep renderer route/view code independent from Electron internals
 - keep search/indexing and asset loading behind the same IPC boundary
 - move any remaining legacy `main/*` internals under `src/main` when the churn is worth it
+- continue extracting renderer UI state helpers before adding larger annotation persistence work

@@ -91,6 +91,7 @@ desktop main은 `fluffy-comics` 구조를 참고해 hexagonal architecture 경�
 - desktop main의 hexagonal architecture 정리
 - core / application / infrastructure 경계 분리
 - desktop main 회귀 테스트 기반 확보
+- renderer route/data-flow helper 테스트 기반 시작
 
 자세한 문서:
 
@@ -98,6 +99,7 @@ desktop main은 `fluffy-comics` 구조를 참고해 hexagonal architecture 경�
 - [`docs/desktop-cache-strategy.md`](./docs/desktop-cache-strategy.md)
 - [`docs/desktop-packaging.md`](./docs/desktop-packaging.md)
 - [`docs/electron-runtime-comparison.md`](./docs/electron-runtime-comparison.md)
+- [`docs/renderer-integration-testing.md`](./docs/renderer-integration-testing.md)
 
 ---
 
@@ -171,9 +173,14 @@ markdeck/
       electron.vite.config.ts
       src/
         main/
+          app/
+          application/
+          core/
+          infrastructure/
         preload/
         renderer/
           src/
+            platform/
             shared/
             features/
             widgets/
@@ -191,21 +198,24 @@ markdeck/
 renderer 쪽은 현재 실용적인 FSD 방향으로 정리 중입니다.
 
 - `platform/desktop/renderer` → desktop renderer bootstrap / bridge / IPC adapter
+- `platform/web` → renderer에서 재사용하는 web/server-side fallback adapter
 - `views/desktop/*` → desktop route 단위 page composition
 - `widgets/desktop/*` → desktop shell 주변 UI(command palette, shortcut help, refresh status)
-- `widgets/document|navigation|layout` → page 조합에 재사용되는 UI 블록
+- `widgets/document|navigation|layout` → page 조합에 재사용되는 UI 블록과 testable UI state helpers
+- `shared/lib` → route, markdown, content, annotation, memo format 같은 순수 helper/type
 
 ---
 
 ## Testing
 
-현재는 특히 **desktop main 영역에 대한 테스트 기반**이 들어가 있습니다.
+현재는 **desktop main 영역**과 일부 **renderer route/data-flow/state helper**에 대한 테스트 기반이 들어가 있습니다.
 
 주요 테스트 축:
 - core 규칙 테스트
 - application orchestration 테스트
 - adapter mock 기반 테스트
 - launch / content root / watcher 흐름 회귀 테스트
+- renderer route parsing / document page data-flow / reader layout state helper 테스트
 
 실행 예시:
 

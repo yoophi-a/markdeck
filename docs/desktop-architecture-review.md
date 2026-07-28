@@ -54,32 +54,35 @@ Replace server-driven document reads with IPC/data APIs, and keep the renderer a
 
 ## Recommended path
 
-1. **Now**: keep Electron wrapping the current web app.
-2. **Next**: move content root selection, file reads, directory traversal, and search indexing into Electron main.
-3. **Later**: evaluate whether the renderer can become fully serverless/hybrid without a Next server.
+1. **Done**: move content root selection, file reads, directory traversal, search indexing, and asset reads behind Electron main/preload IPC.
+2. **Now**: keep the Electron + electron-vite renderer boundary stable while cleaning renderer route/view/widget/helper structure.
+3. **Next**: add `.memo` persistence and richer feedback workflows on top of the existing main/preload/renderer contract.
+4. **Later**: evaluate deeper desktop-native packaging, release, and OS integration polish.
 
-## Current status (2026-03-12)
+## Current status (2026-07-28)
 
-The desktop path has now started this migration:
+The desktop path has moved past the initial Electron-wraps-web migration:
 
 - content root selection/persistence lives in Electron main
 - desktop browse refresh can load directory entries through Electron IPC
 - desktop document refresh can load markdown content, sibling tree data, and known markdown paths through Electron IPC
-- web routes still keep the server-side implementation as the initial render/fallback path
+- asset reads and search queries also go through the desktop IPC boundary
+- renderer route state uses `HashRouter`, while async desktop data is coordinated through React Query
+- renderer route/data-flow/state helpers now have lightweight Node test coverage
 
-So the current model is intentionally **hybrid**:
+So the current model is intentionally **desktop-first with a client renderer**:
 
-- initial page render: Next.js server path
-- desktop hydration/update path: Electron preload/API → main process filesystem access
+- main process: local filesystem, content root, watcher, search, asset reads, desktop lifecycle
+- preload: typed `markdeckDesktop` bridge
+- renderer: route state, query state, document/review UI, local view-state helpers
 
-This keeps the current Electron-wraps-web structure, while starting to move the file exploration/read boundary into Electron main.
+This keeps filesystem access out of React components and leaves larger reviewer features to build on top of a clearer boundary.
 
-## Migration candidates for Electron main
+## Remaining architecture candidates
 
-- content root persistence
-- directory listing
-- markdown file reads
-- asset reads
-- search indexing / query execution
+- convert remaining JavaScript main runtime modules to TypeScript when it reduces risk
+- remove the `sync-main-runtime.mjs` compatibility copy step once the main runtime is fully electron-vite friendly
+- audit preload API surface and IPC error payload consistency
+- define `.memo` file IO and annotation conflict handling inside the existing desktop contract
 
 This keeps the current 1차 Electron 방향을 유지하면서도, 장기적으로는 서버를 별도로 느끼지 않는 구조로 갈 수 있는 이행 경로를 남깁니다.
