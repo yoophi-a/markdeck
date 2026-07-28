@@ -153,6 +153,8 @@ function installContentRepositorySpies(t, behavior = {}) {
     searchMarkdownDocuments: behavior.searchMarkdownDocuments ?? (async () => []),
     getSearchStatus: behavior.getSearchStatus ?? (async () => ({ documentCount: 0, generatedAt: null, cachedQueryCount: 0 })),
     readAsset: behavior.readAsset ?? (async () => null),
+    readMemoFile: behavior.readMemoFile ?? (async () => null),
+    writeMemoFile: behavior.writeMemoFile ?? (async (_relativePath, content) => ({ content })),
   });
 
   t.after(() => {
@@ -180,7 +182,9 @@ test('createMarkdeckDesktopService registers IPC handlers for key desktop applic
     'markdeck:open-recent-content-root',
     'markdeck:read-asset',
     'markdeck:read-markdown-document',
+    'markdeck:read-memo-file',
     'markdeck:search-markdown-documents',
+    'markdeck:write-memo-file',
   ]);
 });
 

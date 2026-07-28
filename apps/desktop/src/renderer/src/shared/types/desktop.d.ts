@@ -17,6 +17,8 @@ declare global {
       searchMarkdownDocuments: (query: string) => Promise<DesktopApiResult<import('@/shared/lib/content-types').SearchResult[]>>;
       getSearchStatus: () => Promise<DesktopApiResult<{ documentCount: number; generatedAt: string; cachedQueryCount: number }>>;
       readAsset: (relativePath: string) => Promise<DesktopApiResult<import('@/shared/lib/content-types').AssetPayload | null>>;
+      readMemoFile: (relativePath: string) => Promise<DesktopApiResult<import('@/shared/lib/content-types').MemoFilePayload | null>>;
+      writeMemoFile: (relativePath: string, content: string) => Promise<DesktopApiResult<import('@/shared/lib/content-types').MemoFilePayload>>;
       executeCommand: (command: string, payload?: unknown) => Promise<DesktopApiResult<unknown>>;
       onContentInvalidated: (listener: (payload: DesktopContentInvalidationEvent) => void) => () => void;
       onContentRootChanged: (listener: (payload: DesktopContentRootChangedEvent) => void) => () => void;

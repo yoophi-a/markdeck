@@ -12,6 +12,7 @@ import {
   listDesktopDirectory,
   openDesktopRecentContentRoot,
   readDesktopAsset,
+  readDesktopMemoFile,
   readDesktopMarkdownDocument,
   searchDesktopMarkdownDocuments,
 } from '@/platform/desktop/renderer/desktop-api';
@@ -91,10 +92,12 @@ export function useDesktopDocumentPageQuery(relativePath: string, enabled = true
         collectDesktopMarkdownRelativePaths(),
         buildDesktopDocumentTree(directoryPath, 1),
       ]);
+      const memoFile = document ? await readDesktopMemoFile(relativePath) : null;
 
       return {
         document,
         knownDocuments,
+        memoFile,
         sidebarTree,
       };
     },

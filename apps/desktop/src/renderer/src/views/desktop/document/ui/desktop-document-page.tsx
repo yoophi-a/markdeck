@@ -6,11 +6,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { DesktopContentRootEmptyState, DesktopErrorFallback } from '@/platform/desktop/renderer/desktop-error-fallback';
 import { useDesktopContentRootQuery, useDesktopDocumentPageQuery } from '@/platform/desktop/renderer/desktop-queries';
 import { useDesktopRenderer } from '@/platform/desktop/renderer/use-desktop-renderer';
+import { writeDesktopMemoFile } from '@/platform/desktop/renderer/desktop-api';
 import { buildBlockTextAnchor, createAnnotationId, createTimestamp, type AnnotationDocument, type DocumentAnnotation } from '@/shared/lib/annotations';
 import type { DocumentTreeNode, MarkdownDocument } from '@/shared/lib/content-types';
 import { formatDateTime, formatFileSize } from '@/shared/lib/format';
 import { extractHeadings, preprocessWikiLinks, resolveWikiLinkHref } from '@/shared/lib/markdown';
-import { stringifyMemoFile } from '@/shared/lib/memo-format';
+import { parseMemoFile, stringifyMemoFile } from '@/shared/lib/memo-format';
 import { toBrowseHref } from '@/shared/lib/routes';
 import { writeLastDocumentState } from '@/shared/lib/view-state';
 import { AppLink } from '@/shared/ui/app-link';
@@ -52,9 +53,11 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
   const documentPageQuery = useDesktopDocumentPageQuery(relativePath, desktopRenderer);
   const document = desktopRenderer ? documentPageQuery.data?.document ?? null : initialDocument;
   const knownDocuments = desktopRenderer ? documentPageQuery.data?.knownDocuments ?? [] : initialKnownDocuments;
+  const memoFile = desktopRenderer ? documentPageQuery.data?.memoFile ?? null : null;
   const sidebarTree = desktopRenderer ? documentPageQuery.data?.sidebarTree ?? [] : initialSidebarTree;
   const contentRootKey = contentRootQuery.data ?? 'web';
   const [annotations, setAnnotations] = useState<DocumentAnnotation[]>([]);
+  const [loadedAnnotationPath, setLoadedAnnotationPath] = useState('');
   const [selectionDraft, setSelectionDraft] = useState<SelectionDraft | null>(null);
   const [isDesktopChromeCollapsed, setIsDesktopChromeCollapsed] = useState(false);
   const [isTitleMetaOpen, setIsTitleMetaOpen] = useState(false);
@@ -84,16 +87,31 @@ export function DesktopDocumentPage({ slug, initialDocument = null, initialKnown
       return;
     }
 
+    if (desktopRenderer && memoFile?.content) {
+      const memoDocument = parseMemoFile(memoFile.content);
+      setAnnotations(memoDocument?.documentPath === document.relativePath ? memoDocument.annotations : readAnnotations(document.relativePath));
+      setLoadedAnnotationPath(document.relativePath);
+      return;
+    }
+
     setAnnotations(readAnnotations(document.relativePath));
-  }, [document?.relativePath]);
+    setLoadedAnnotationPath(document.relativePath);
+  }, [desktopRenderer, document?.relativePath, memoFile?.content]);
 
   useEffect(() => {
-    if (!document) {
+    if (!document || loadedAnnotationPath !== document.relativePath) {
+      return;
+    }
+
+    if (desktopRenderer) {
+      void writeDesktopMemoFile(document.relativePath, memoPreview).catch((error) => {
+        console.warn('Failed to write MarkDeck memo sidecar', error);
+      });
       return;
     }
 
     writeAnnotations(document.relativePath, annotations);
-  }, [annotations, document]);
+  }, [annotations, desktopRenderer, document, loadedAnnotationPath, memoPreview]);
 
   useEffect(() => {
     if (!document) {

@@ -18,5 +18,5 @@
     "src/renderer/src/**/*.d.ts",
     "electron.vite.config.ts"
   ],
-  "exclude": ["node_modules", "out", "dist"]
+  "exclude": ["node_modules", "out", "dist", "src/**/*.test.ts"]
 }

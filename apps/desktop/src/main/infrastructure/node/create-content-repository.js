@@ -43,6 +43,19 @@ function createContentRepository({ getContentRoot, shouldIgnoreEntry }) {
     return resolvedPath;
   }
 
+  function getMemoRelativePath(markdownRelativePath) {
+    const normalizedPath = normalizeRelativePath(markdownRelativePath);
+
+    if (!normalizedPath.toLowerCase().endsWith('.md')) {
+      throw new Error('Only markdown files are supported');
+    }
+
+    const directoryName = path.posix.dirname(normalizedPath);
+    const fileName = path.posix.basename(normalizedPath);
+    const memoFileName = `${fileName}.memo`;
+    return directoryName === '.' ? memoFileName : `${directoryName}/${memoFileName}`;
+  }
+
   function sortBrowserEntries(a, b) {
     if (a.type === b.type) return a.name.localeCompare(b.name);
     if (a.type === 'directory') return -1;
@@ -66,6 +79,10 @@ function createContentRepository({ getContentRoot, shouldIgnoreEntry }) {
     return heading || path.basename(relativePath, '.md');
   }
 
+  function isMemoSidecarFile(entryName) {
+    return entryName.toLowerCase().endsWith('.md.memo');
+  }
+
   async function listDirectory(relativePath = '') {
     const normalizedPath = normalizeRelativePath(relativePath);
     const absolutePath = assertSafePath(normalizedPath);
@@ -73,7 +90,7 @@ function createContentRepository({ getContentRoot, shouldIgnoreEntry }) {
 
     const entries = await Promise.all(
       dirents
-        .filter((entry) => !shouldIgnoreEntry(entry.name))
+        .filter((entry) => !shouldIgnoreEntry(entry.name) && !isMemoSidecarFile(entry.name))
         .map(async (entry) => {
           const entryRelativePath = normalizeSegments([...normalizedPath.split('/').filter(Boolean), entry.name]).join('/');
           const entryAbsolutePath = path.join(absolutePath, entry.name);
@@ -118,7 +135,7 @@ function createContentRepository({ getContentRoot, shouldIgnoreEntry }) {
 
     const nodes = await Promise.all(
       dirents
-        .filter((entry) => !shouldIgnoreEntry(entry.name))
+        .filter((entry) => !shouldIgnoreEntry(entry.name) && !isMemoSidecarFile(entry.name))
         .map(async (entry) => {
           const entryRelativePath = normalizeSegments([...normalizedPath.split('/').filter(Boolean), entry.name]).join('/');
 
@@ -184,7 +201,7 @@ function createContentRepository({ getContentRoot, shouldIgnoreEntry }) {
     const dirents = await fsp.readdir(directoryPath, { withFileTypes: true });
     const nestedResults = await Promise.all(
       dirents
-        .filter((entry) => !shouldIgnoreEntry(entry.name))
+        .filter((entry) => !shouldIgnoreEntry(entry.name) && !isMemoSidecarFile(entry.name))
         .map(async (entry) => {
           const entryPath = path.join(directoryPath, entry.name);
 
@@ -351,6 +368,42 @@ function createContentRepository({ getContentRoot, shouldIgnoreEntry }) {
     return payload;
   }
 
+  async function readMemoFile(markdownRelativePath) {
+    const memoRelativePath = getMemoRelativePath(markdownRelativePath);
+    const absolutePath = assertSafePath(memoRelativePath);
+
+    if (!fs.existsSync(absolutePath)) {
+      return null;
+    }
+
+    const [content, stats] = await Promise.all([fsp.readFile(absolutePath, 'utf8'), fsp.stat(absolutePath)]);
+
+    return {
+      relativePath: memoRelativePath,
+      content,
+      size: stats.size,
+      updatedAt: stats.mtime.toISOString(),
+    };
+  }
+
+  async function writeMemoFile(markdownRelativePath, content) {
+    if (typeof content !== 'string') {
+      throw new TypeError('Memo content must be a string');
+    }
+
+    const memoRelativePath = getMemoRelativePath(markdownRelativePath);
+    const absolutePath = assertSafePath(memoRelativePath);
+    await fsp.writeFile(absolutePath, content, 'utf8');
+    const stats = await fsp.stat(absolutePath);
+
+    return {
+      relativePath: memoRelativePath,
+      content,
+      size: stats.size,
+      updatedAt: stats.mtime.toISOString(),
+    };
+  }
+
   function invalidateAllCaches() {
     searchIndexCache = null;
     searchIndexPromise = null;
@@ -404,6 +457,8 @@ function createContentRepository({ getContentRoot, shouldIgnoreEntry }) {
     searchMarkdownDocuments,
     getSearchStatus,
     readAsset,
+    readMemoFile,
+    writeMemoFile,
     invalidateAllCaches,
     invalidateCachesForPath,
     normalizeRelativePath,

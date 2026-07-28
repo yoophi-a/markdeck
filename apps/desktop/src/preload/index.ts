@@ -27,6 +27,8 @@ contextBridge.exposeInMainWorld('markdeckDesktop', {
   searchMarkdownDocuments: (query: string) => invoke('markdeck:search-markdown-documents', query),
   getSearchStatus: () => invoke('markdeck:get-search-status'),
   readAsset: (relativePath: string) => invoke('markdeck:read-asset', relativePath),
+  readMemoFile: (relativePath: string) => invoke('markdeck:read-memo-file', relativePath),
+  writeMemoFile: (relativePath: string, content: string) => invoke('markdeck:write-memo-file', relativePath, content),
   executeCommand: (command: string, payload: unknown = null) => invoke('markdeck:execute-command', command, payload),
   onContentInvalidated: (listener: (payload: unknown) => void) => subscribe('markdeck:content-invalidated', listener),
   onContentRootChanged: (listener: (payload: unknown) => void) => subscribe('markdeck:content-root-changed', listener),

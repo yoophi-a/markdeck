@@ -41,6 +41,20 @@ export function fromMemoFile(file: MemoFile): AnnotationDocument {
   };
 }
 
+export function parseMemoFile(content: string): AnnotationDocument | null {
+  try {
+    const parsed = JSON.parse(content) as Partial<MemoFile>;
+
+    if (parsed.version !== MARKDECK_ANNOTATION_SCHEMA_VERSION || parsed.strategy !== 'annotation-diff' || typeof parsed.documentPath !== 'string' || !Array.isArray(parsed.operations)) {
+      return null;
+    }
+
+    return fromMemoFile(parsed as MemoFile);
+  } catch {
+    return null;
+  }
+}
+
 export function stringifyMemoFile(document: AnnotationDocument) {
   return `${JSON.stringify(toMemoFile(document), null, 2)}\n`;
 }

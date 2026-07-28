@@ -65,6 +65,14 @@ test('desktop main commands split write-side behaviors from read-side queries', 
         calls.push(['readAsset', relativePath]);
         return { relativePath, contentType: 'text/plain', dataBase64: '', size: 0 };
       },
+      readMemoFile(relativePath) {
+        calls.push(['readMemoFile', relativePath]);
+        return { relativePath: `${relativePath}.memo`, content: '{}', size: 2, updatedAt: null };
+      },
+      writeMemoFile(relativePath, content) {
+        calls.push(['writeMemoFile', relativePath, content]);
+        return { relativePath: `${relativePath}.memo`, content, size: content.length, updatedAt: null };
+      },
     },
   });
 
@@ -83,6 +91,8 @@ test('desktop main commands split write-side behaviors from read-side queries', 
   assert.deepEqual(queries.searchMarkdownDocuments('hello'), []);
   assert.deepEqual(queries.getSearchStatus(), { documentCount: 1, generatedAt: null, cachedQueryCount: 0 });
   assert.deepEqual(queries.readAsset('image.png'), { relativePath: 'image.png', contentType: 'text/plain', dataBase64: '', size: 0 });
+  assert.deepEqual(queries.readMemoFile('guide.md'), { relativePath: 'guide.md.memo', content: '{}', size: 2, updatedAt: null });
+  assert.deepEqual(queries.writeMemoFile('guide.md', '{}'), { relativePath: 'guide.md.memo', content: '{}', size: 2, updatedAt: null });
 
   assert.deepEqual(calls, [
     ['chooseContentRoot'],
@@ -96,5 +106,7 @@ test('desktop main commands split write-side behaviors from read-side queries', 
     ['searchMarkdownDocuments', 'hello'],
     ['getSearchStatus'],
     ['readAsset', 'image.png'],
+    ['readMemoFile', 'guide.md'],
+    ['writeMemoFile', 'guide.md', '{}'],
   ]);
 });

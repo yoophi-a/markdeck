@@ -31,6 +31,8 @@ function installContentRepositoryMock(t, overrides = {}) {
     listDirectoryCalls: [],
     readMarkdownDocumentCalls: [],
     readAssetCalls: [],
+    readMemoFileCalls: [],
+    writeMemoFileCalls: [],
   };
 
   repositoryModule.createContentRepository = () => ({
@@ -74,6 +76,20 @@ function installContentRepositoryMock(t, overrides = {}) {
         return overrides.readAsset(relativePath);
       }
       return { relativePath, contentType: 'text/plain', dataBase64: '', size: 0 };
+    },
+    async readMemoFile(relativePath) {
+      state.readMemoFileCalls.push(relativePath);
+      if (overrides.readMemoFile) {
+        return overrides.readMemoFile(relativePath);
+      }
+      return null;
+    },
+    async writeMemoFile(relativePath, content) {
+      state.writeMemoFileCalls.push([relativePath, content]);
+      if (overrides.writeMemoFile) {
+        return overrides.writeMemoFile(relativePath, content);
+      }
+      return { relativePath: `${relativePath}.memo`, content, size: content.length, updatedAt: null };
     },
   });
 
@@ -236,5 +252,32 @@ test('IPC execute-command wraps invalid commands as INVALID_INPUT without leakin
   assert.deepEqual(result, {
     ok: false,
     error: { code: 'INVALID_INPUT', message: 'Unknown desktop command: unsupported-command' },
+  });
+});
+
+test('IPC handlers expose memo sidecar read and write operations', async (t) => {
+  const repositoryState = installContentRepositoryMock(t, {
+    readMemoFile(relativePath) {
+      return { relativePath: `${relativePath}.memo`, content: '{"version":1}', size: 13, updatedAt: '2026-07-28T00:00:00.000Z' };
+    },
+  });
+  const harness = createServiceHarness({
+    initialConfig: { contentRoot: '/docs/current', recentContentRoots: ['/docs/current'] },
+  });
+
+  harness.service.registerIpcHandlers();
+
+  const readResult = await harness.handledIpc.get('markdeck:read-memo-file')('guide.md');
+  const writeResult = await harness.handledIpc.get('markdeck:write-memo-file')('guide.md', '{"version":1}');
+
+  assert.deepEqual(repositoryState.readMemoFileCalls, ['guide.md']);
+  assert.deepEqual(repositoryState.writeMemoFileCalls, [['guide.md', '{"version":1}']]);
+  assert.deepEqual(readResult, {
+    ok: true,
+    data: { relativePath: 'guide.md.memo', content: '{"version":1}', size: 13, updatedAt: '2026-07-28T00:00:00.000Z' },
+  });
+  assert.deepEqual(writeResult, {
+    ok: true,
+    data: { relativePath: 'guide.md.memo', content: '{"version":1}', size: 13, updatedAt: null },
   });
 });

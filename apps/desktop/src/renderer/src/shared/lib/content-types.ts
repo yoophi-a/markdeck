@@ -38,3 +38,10 @@ export interface AssetPayload {
   dataBase64: string;
   size: number;
 }
+
+export interface MemoFilePayload {
+  relativePath: string;
+  content: string;
+  size: number;
+  updatedAt: string;
+}

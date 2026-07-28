@@ -1,4 +1,4 @@
-import type { AssetPayload, BrowserEntry, DocumentTreeNode, MarkdownDocument, SearchResult } from '@/shared/lib/content-types';
+import type { AssetPayload, BrowserEntry, DocumentTreeNode, MarkdownDocument, MemoFilePayload, SearchResult } from '@/shared/lib/content-types';
 import { DesktopApiError, type DesktopApiResult } from '@/shared/lib/desktop-contract';
 
 export interface DesktopContentInvalidationEvent {
@@ -83,6 +83,14 @@ export function getDesktopSearchStatus(): Promise<{ documentCount: number; gener
 
 export function readDesktopAsset(relativePath: string): Promise<AssetPayload | null> {
   return unwrapDesktopResult(getDesktopApi()?.readAsset(relativePath), null);
+}
+
+export function readDesktopMemoFile(relativePath: string): Promise<MemoFilePayload | null> {
+  return unwrapDesktopResult(getDesktopApi()?.readMemoFile(relativePath), null);
+}
+
+export function writeDesktopMemoFile(relativePath: string, content: string): Promise<MemoFilePayload | null> {
+  return unwrapDesktopResult(getDesktopApi()?.writeMemoFile(relativePath, content), null);
 }
 
 export function executeDesktopCommand(command: string, payload: unknown = null) {

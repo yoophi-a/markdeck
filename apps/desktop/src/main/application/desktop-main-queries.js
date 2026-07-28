@@ -27,6 +27,12 @@ function createDesktopMainQueries({ getConfiguredDesktopContentRoot, getDesktopR
     readAsset(relativePath) {
       return contentRepository.readAsset(relativePath);
     },
+    readMemoFile(relativePath) {
+      return contentRepository.readMemoFile(relativePath);
+    },
+    writeMemoFile(relativePath, content) {
+      return contentRepository.writeMemoFile(relativePath, content);
+    },
   };
 }
 

@@ -134,6 +134,8 @@ function createMarkdeckDesktopService({ env = process.env, configStore, shell, w
     handleDesktopIpc('markdeck:search-markdown-documents', queries.searchMarkdownDocuments);
     handleDesktopIpc('markdeck:get-search-status', queries.getSearchStatus);
     handleDesktopIpc('markdeck:read-asset', queries.readAsset);
+    handleDesktopIpc('markdeck:read-memo-file', queries.readMemoFile);
+    handleDesktopIpc('markdeck:write-memo-file', queries.writeMemoFile);
     handleDesktopIpc('markdeck:execute-command', commands.execute);
   }
 
