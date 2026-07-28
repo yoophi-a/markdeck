@@ -1,4 +1,3 @@
-const { Menu } = require('electron');
 const { buildApplicationMenuTemplate } = require('./application-menu');
 
 function createElectronMenuAdapter({ isDev }) {
@@ -12,6 +11,7 @@ function createElectronMenuAdapter({ isDev }) {
       });
     },
     set(template) {
+      const { Menu } = require('electron');
       Menu.setApplicationMenu(Menu.buildFromTemplate(template));
     },
   };

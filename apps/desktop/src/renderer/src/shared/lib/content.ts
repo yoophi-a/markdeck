@@ -192,30 +192,42 @@ export async function searchMarkdownDocuments(query: string): Promise<SearchResu
   }
 
   const markdownFiles = await collectMarkdownFiles(CONTENT_ROOT);
+  type ScoredSearchResult = SearchResult & { score: number };
   const results = await Promise.all(
     markdownFiles.map(async (filePath) => {
       const relativePath = path.relative(CONTENT_ROOT, filePath).split(path.sep).join('/');
       const [content, stats] = await Promise.all([fs.readFile(filePath, 'utf8'), fs.stat(filePath)]);
       const title = extractTitle(relativePath, content);
-      const haystack = `${relativePath}\n${title}\n${content}`.toLowerCase();
+      const searchDocument = {
+        relativePath,
+        relativePathLower: relativePath.toLowerCase(),
+        title,
+        titleLower: title.toLowerCase(),
+        content,
+        contentLower: content.toLowerCase(),
+      };
+      const score = scoreSearchDocument(searchDocument, normalizedQuery);
 
-      if (!haystack.includes(normalizedQuery)) {
+      if (score === 0) {
         return null;
       }
 
-      return {
+      const result: ScoredSearchResult = {
         relativePath,
         title,
-        snippet: buildSnippet(content, normalizedQuery),
+        snippet: buildSearchSnippet(searchDocument, normalizedQuery),
         size: stats.size,
         updatedAt: stats.mtime.toISOString(),
-      } satisfies SearchResult;
+        score,
+      };
+      return result;
     })
   );
 
   return results
-    .filter((value): value is SearchResult => Boolean(value))
-    .sort((a, b) => a.relativePath.localeCompare(b.relativePath));
+    .filter((value): value is ScoredSearchResult => Boolean(value))
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0) || a.relativePath.localeCompare(b.relativePath))
+    .map(({ score: _score, ...result }) => result);
 }
 
 async function collectMarkdownFiles(directoryPath: string): Promise<string[]> {
@@ -257,8 +269,65 @@ function buildSnippet(content: string, normalizedQuery: string) {
   return `${prefix}${compact.slice(start, end)}${suffix}`;
 }
 
+interface SearchDocumentForScoring {
+  relativePath: string;
+  relativePathLower: string;
+  title: string;
+  titleLower: string;
+  content: string;
+  contentLower: string;
+}
+
+function countOccurrences(value: string, normalizedQuery: string) {
+  let count = 0;
+  let index = value.indexOf(normalizedQuery);
+
+  while (index !== -1) {
+    count += 1;
+    index = value.indexOf(normalizedQuery, index + normalizedQuery.length);
+  }
+
+  return count;
+}
+
+function scoreSearchDocument(document: SearchDocumentForScoring, normalizedQuery: string) {
+  let score = 0;
+
+  if (document.titleLower === normalizedQuery) {
+    score += 1200;
+  } else if (document.titleLower.startsWith(normalizedQuery)) {
+    score += 900;
+  } else if (document.titleLower.includes(normalizedQuery)) {
+    score += 700;
+  }
+
+  if (path.basename(document.relativePathLower).includes(normalizedQuery)) {
+    score += 450;
+  } else if (document.relativePathLower.includes(normalizedQuery)) {
+    score += 300;
+  }
+
+  const contentMatches = countOccurrences(document.contentLower, normalizedQuery);
+  if (contentMatches > 0) {
+    score += Math.min(360, 80 + contentMatches * 30);
+  }
+
+  return score;
+}
+
+function buildSearchSnippet(document: SearchDocumentForScoring, normalizedQuery: string) {
+  if (document.titleLower.includes(normalizedQuery)) {
+    return `Title: ${document.title}`;
+  }
+
+  if (document.relativePathLower.includes(normalizedQuery)) {
+    return `Path: ${document.relativePath}`;
+  }
+
+  return buildSnippet(document.content, normalizedQuery);
+}
+
 function extractTitle(relativePath: string, content: string) {
   const heading = content.match(/^#\s+(.+)$/m)?.[1]?.trim();
   return heading || path.basename(relativePath, '.md');
 }
-

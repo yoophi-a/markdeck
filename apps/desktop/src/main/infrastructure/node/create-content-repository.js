@@ -216,7 +216,9 @@ function createContentRepository({ getContentRoot, shouldIgnoreEntry }) {
           relativePath,
           title,
           content,
-          contentLower: `${relativePath}\n${title}\n${content}`.toLowerCase(),
+          relativePathLower: relativePath.toLowerCase(),
+          titleLower: title.toLowerCase(),
+          contentLower: content.toLowerCase(),
           size: stats.size,
           updatedAt: stats.mtime.toISOString(),
           mtimeMs: stats.mtimeMs,
@@ -278,6 +280,55 @@ function createContentRepository({ getContentRoot, shouldIgnoreEntry }) {
     return `${prefix}${compact.slice(start, end)}${suffix}`;
   }
 
+  function countOccurrences(value, normalizedQuery) {
+    let count = 0;
+    let index = value.indexOf(normalizedQuery);
+
+    while (index !== -1) {
+      count += 1;
+      index = value.indexOf(normalizedQuery, index + normalizedQuery.length);
+    }
+
+    return count;
+  }
+
+  function scoreSearchDocument(document, normalizedQuery) {
+    let score = 0;
+
+    if (document.titleLower === normalizedQuery) {
+      score += 1200;
+    } else if (document.titleLower.startsWith(normalizedQuery)) {
+      score += 900;
+    } else if (document.titleLower.includes(normalizedQuery)) {
+      score += 700;
+    }
+
+    if (path.basename(document.relativePathLower).includes(normalizedQuery)) {
+      score += 450;
+    } else if (document.relativePathLower.includes(normalizedQuery)) {
+      score += 300;
+    }
+
+    const contentMatches = countOccurrences(document.contentLower, normalizedQuery);
+    if (contentMatches > 0) {
+      score += Math.min(360, 80 + contentMatches * 30);
+    }
+
+    return score;
+  }
+
+  function buildSearchSnippet(document, normalizedQuery) {
+    if (document.titleLower.includes(normalizedQuery)) {
+      return `Title: ${document.title}`;
+    }
+
+    if (document.relativePathLower.includes(normalizedQuery)) {
+      return `Path: ${document.relativePath}`;
+    }
+
+    return buildSnippet(document.content, normalizedQuery);
+  }
+
   async function searchMarkdownDocuments(query) {
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -293,11 +344,16 @@ function createContentRepository({ getContentRoot, shouldIgnoreEntry }) {
 
     const index = await ensureSearchIndex();
     const results = index.documents
-      .filter((document) => document.contentLower.includes(normalizedQuery))
       .map((document) => ({
+        document,
+        score: scoreSearchDocument(document, normalizedQuery),
+      }))
+      .filter((result) => result.score > 0)
+      .sort((a, b) => b.score - a.score || a.document.relativePath.localeCompare(b.document.relativePath))
+      .map(({ document }) => ({
         relativePath: document.relativePath,
         title: document.title,
-        snippet: buildSnippet(document.content, normalizedQuery),
+        snippet: buildSearchSnippet(document, normalizedQuery),
         size: document.size,
         updatedAt: document.updatedAt,
       }));
