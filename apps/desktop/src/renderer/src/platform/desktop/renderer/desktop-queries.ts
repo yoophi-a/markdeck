@@ -16,6 +16,7 @@ import {
   searchDesktopMarkdownDocuments,
 } from '@/platform/desktop/renderer/desktop-api';
 import { isDesktopRenderer } from '@/platform/desktop/renderer/desktop-api';
+import { loadDesktopDocumentPageData } from '@/platform/desktop/renderer/desktop-query-flows';
 import { createAppHref } from '@/shared/lib/app-routes';
 
 export const desktopQueryKeys = {
@@ -84,20 +85,12 @@ export function useDesktopDocumentTreeQuery(relativePath: string, depth = 1, ena
 export function useDesktopDocumentPageQuery(relativePath: string, enabled = true) {
   return useQuery({
     queryKey: desktopQueryKeys.documentPage(relativePath),
-    queryFn: async () => {
-      const directoryPath = relativePath.split('/').slice(0, -1).join('/');
-      const [document, knownDocuments, sidebarTree] = await Promise.all([
-        readDesktopMarkdownDocument(relativePath),
-        collectDesktopMarkdownRelativePaths(),
-        buildDesktopDocumentTree(directoryPath, 1),
-      ]);
-
-      return {
-        document,
-        knownDocuments,
-        sidebarTree,
-      };
-    },
+    queryFn: () =>
+      loadDesktopDocumentPageData(relativePath, {
+        readMarkdownDocument: readDesktopMarkdownDocument,
+        collectMarkdownRelativePaths: collectDesktopMarkdownRelativePaths,
+        buildDocumentTree: buildDesktopDocumentTree,
+      }),
     enabled: enabled && isDesktopRenderer() && Boolean(relativePath),
   });
 }
